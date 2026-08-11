@@ -1,0 +1,114 @@
+'use client'
+
+import { ReportData } from '@/lib/services/rekap.service'
+
+function formatRupiah(amount: number): string {
+  if (amount === 0) return '—'
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount)
+}
+
+function formatDate(dateStr: string): string {
+  if (!dateStr) return '—'
+  return new Date(dateStr).toLocaleDateString('id-ID', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  }).replace(/\//g, '-')
+}
+
+export function RekapTable({ data }: { data: ReportData }) {
+  return (
+    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+      <div className="overflow-x-auto select-auto">
+        {/* We use a standard table that is copy-paste friendly */}
+        <table className="w-full text-sm text-left whitespace-nowrap">
+          <thead className="bg-slate-50 border-b border-slate-200 text-slate-700">
+            <tr>
+              <th className="px-4 py-3 font-semibold border-r border-slate-200 w-28">Tanggal</th>
+              <th className="px-4 py-3 font-semibold border-r border-slate-200 min-w-[200px]">Uraian / Keterangan</th>
+              <th className="px-4 py-3 font-semibold border-r border-slate-200">Penerima</th>
+              <th className="px-4 py-3 font-semibold border-r border-slate-200">Kategori</th>
+              <th className="px-4 py-3 font-semibold border-r border-slate-200">Bidang</th>
+              <th className="px-4 py-3 font-semibold border-r border-slate-200 text-right text-green-700 w-32">Dana Masuk (Rp)</th>
+              <th className="px-4 py-3 font-semibold border-r border-slate-200 text-right text-red-700 w-32">Pengeluaran (Rp)</th>
+              <th className="px-4 py-3 font-semibold text-right text-blue-700 w-36">Saldo (Rp)</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-200 text-slate-800">
+            
+            {/* Opening Balance Row */}
+            <tr className="bg-slate-50/50 hover:bg-slate-50 transition-colors">
+              <td className="px-4 py-2.5 border-r border-slate-200 text-slate-500 text-center">—</td>
+              <td className="px-4 py-2.5 border-r border-slate-200 font-medium">Saldo Awal</td>
+              <td className="px-4 py-2.5 border-r border-slate-200 text-center">—</td>
+              <td className="px-4 py-2.5 border-r border-slate-200 text-center">—</td>
+              <td className="px-4 py-2.5 border-r border-slate-200 text-center">—</td>
+              <td className="px-4 py-2.5 border-r border-slate-200 text-right">—</td>
+              <td className="px-4 py-2.5 border-r border-slate-200 text-right">—</td>
+              <td className="px-4 py-2.5 text-right font-medium text-slate-900 bg-blue-50/30">
+                {formatRupiah(data.openingBalance)}
+              </td>
+            </tr>
+
+            {/* Mutasi Rows */}
+            {data.rows.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="px-4 py-8 text-center text-slate-400 italic">
+                  Tidak ada transaksi pada periode ini.
+                </td>
+              </tr>
+            ) : (
+              data.rows.map((row) => (
+                <tr key={row.id} className="hover:bg-slate-50 transition-colors">
+                  <td className="px-4 py-2.5 border-r border-slate-200">{formatDate(row.date)}</td>
+                  <td className="px-4 py-2.5 border-r border-slate-200 truncate max-w-md" title={row.description}>
+                    {row.description}
+                  </td>
+                  <td className="px-4 py-2.5 border-r border-slate-200">{row.recipient || '—'}</td>
+                  <td className="px-4 py-2.5 border-r border-slate-200">{row.category}</td>
+                  <td className="px-4 py-2.5 border-r border-slate-200">{row.division}</td>
+                  <td className="px-4 py-2.5 border-r border-slate-200 text-right text-green-700">
+                    {formatRupiah(row.inAmount)}
+                  </td>
+                  <td className="px-4 py-2.5 border-r border-slate-200 text-right text-red-700">
+                    {formatRupiah(row.outAmount)}
+                  </td>
+                  <td className="px-4 py-2.5 text-right font-medium text-slate-900 bg-blue-50/30">
+                    {formatRupiah(row.balance)}
+                  </td>
+                </tr>
+              ))
+            )}
+
+            {/* Closing Balance Row */}
+            <tr className="bg-slate-100 font-semibold border-t-2 border-slate-300">
+              <td className="px-4 py-3 border-r border-slate-200 text-center">—</td>
+              <td className="px-4 py-3 border-r border-slate-200">Saldo Akhir</td>
+              <td className="px-4 py-3 border-r border-slate-200 text-center">—</td>
+              <td className="px-4 py-3 border-r border-slate-200 text-center">—</td>
+              <td className="px-4 py-3 border-r border-slate-200 text-center">—</td>
+              <td className="px-4 py-3 border-r border-slate-200 text-right text-green-700">
+                {formatRupiah(data.totalIn)}
+              </td>
+              <td className="px-4 py-3 border-r border-slate-200 text-right text-red-700">
+                {formatRupiah(data.totalOut)}
+              </td>
+              <td className="px-4 py-3 text-right text-blue-800 bg-blue-100/50">
+                {formatRupiah(data.endingBalance)}
+              </td>
+            </tr>
+
+          </tbody>
+        </table>
+      </div>
+      <div className="bg-slate-50 px-4 py-3 border-t border-slate-200 text-xs text-slate-500">
+        Tips: Anda dapat menyorot (blok) tabel di atas, lalu tekan Ctrl+C dan Paste (Ctrl+V) langsung ke Microsoft Excel atau Google Sheets.
+      </div>
+    </div>
+  )
+}

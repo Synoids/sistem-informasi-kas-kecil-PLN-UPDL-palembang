@@ -1,0 +1,208 @@
+'use client'
+
+import { useState } from 'react'
+import { Database } from '@/lib/types/database.types'
+import { createCategoryAction, updateCategoryAction, toggleCategoryActiveAction } from '@/app/(app)/master/actions'
+import { showToast } from '@/app/components/Toast'
+
+type Category = Database['public']['Tables']['categories']['Row']
+
+export function CategoryList({ initialData }: { initialData: Category[] }) {
+  const [data, setData] = useState<Category[]>(initialData)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isPending, setIsPending] = useState(false)
+  const [editingItem, setEditingItem] = useState<Category | null>(null)
+  const [filterActive, setFilterActive] = useState<string>('all')
+
+  const filteredData = data.filter(item => {
+    if (filterActive === 'active') return item.is_active
+    if (filterActive === 'inactive') return !item.is_active
+    return true
+  })
+
+  function openCreateModal() {
+    setEditingItem(null)
+    setIsModalOpen(true)
+  }
+
+  function openEditModal(item: Category) {
+    setEditingItem(item)
+    setIsModalOpen(true)
+  }
+
+  function closeModal() {
+    setIsModalOpen(false)
+    setEditingItem(null)
+  }
+
+  async function handleAction(formData: FormData) {
+    setIsPending(true)
+    try {
+      const result = editingItem 
+        ? await updateCategoryAction(editingItem.id, formData)
+        : await createCategoryAction(formData)
+        
+      if (result?.error) {
+        showToast(result.error, 'error')
+      } else {
+        showToast(editingItem ? 'Kategori berhasil diperbarui.' : 'Kategori berhasil ditambahkan.', 'success')
+        // Optimistic UI update could go here, but revalidatePath will refresh the page via server component
+        // For smoother UX without full page reload, we wait for Next.js to re-render the server component
+        // However, since it's a client component wrapping it, we might need a router.refresh() 
+        // if we want to ensure fresh data, or just rely on server action's revalidatePath
+        // Actually, Next.js App Router automatically refreshes the current route on revalidatePath.
+        closeModal()
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Terjadi kesalahan', 'error')
+    } finally {
+      setIsPending(false)
+    }
+  }
+
+  async function toggleStatus(item: Category) {
+    if (!window.confirm(`Yakin ingin ${item.is_active ? 'menonaktifkan' : 'mengaktifkan'} kategori ini?`)) {
+      return
+    }
+    
+    setIsPending(true)
+    try {
+      const result = await toggleCategoryActiveAction(item.id, item.is_active)
+      if (result?.error) {
+        showToast(result.error, 'error')
+      } else {
+        showToast(`Kategori berhasil ${item.is_active ? 'dinonaktifkan' : 'diaktifkan'}.`, 'success')
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Terjadi kesalahan', 'error')
+    } finally {
+      setIsPending(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <select 
+          value={filterActive}
+          onChange={(e) => setFilterActive(e.target.value)}
+          className="border border-slate-300 rounded-md py-1.5 px-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+        >
+          <option value="all">Semua Status</option>
+          <option value="active">Aktif</option>
+          <option value="inactive">Nonaktif</option>
+        </select>
+        <button 
+          onClick={openCreateModal}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+        >
+          + Tambah Kategori
+        </button>
+      </div>
+
+      <div className="overflow-x-auto border border-slate-200 rounded-lg">
+        <table className="w-full text-left text-sm text-slate-600">
+          <thead className="bg-slate-50 text-slate-800 border-b border-slate-200">
+            <tr>
+              <th className="px-4 py-3 font-semibold">Nama Kategori</th>
+              <th className="px-4 py-3 font-semibold w-24">Status</th>
+              <th className="px-4 py-3 font-semibold w-32 text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {filteredData.length === 0 ? (
+              <tr>
+                <td colSpan={3} className="px-4 py-8 text-center text-slate-500">
+                  Tidak ada data kategori.
+                </td>
+              </tr>
+            ) : (
+              filteredData.map(item => (
+                <tr key={item.id} className="hover:bg-slate-50">
+                  <td className="px-4 py-3 font-medium text-slate-800">{item.name}</td>
+                  <td className="px-4 py-3">
+                    {item.is_active ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                        Aktif
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">
+                        Nonaktif
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right space-x-2">
+                    <button 
+                      onClick={() => openEditModal(item)}
+                      className="text-blue-600 hover:text-blue-800 transition-colors"
+                    >
+                      Edit
+                    </button>
+                    <button 
+                      onClick={() => toggleStatus(item)}
+                      disabled={isPending}
+                      className={item.is_active ? "text-red-600 hover:text-red-800 transition-colors disabled:opacity-50" : "text-green-600 hover:text-green-800 transition-colors disabled:opacity-50"}
+                    >
+                      {item.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-slate-800">
+                {editingItem ? 'Edit Kategori' : 'Tambah Kategori'}
+              </h3>
+              <button onClick={closeModal} className="text-slate-400 hover:text-slate-600">
+                ✕
+              </button>
+            </div>
+            
+            <form action={handleAction} className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-slate-700 mb-1">
+                    Nama Kategori
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    required
+                    defaultValue={editingItem?.name || ''}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    placeholder="Contoh: BBM, E-Toll"
+                  />
+                </div>
+              </div>
+              
+              <div className="mt-8 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isPending}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                >
+                  {isPending ? 'Menyimpan...' : 'Simpan'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
