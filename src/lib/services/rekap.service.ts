@@ -6,13 +6,15 @@ export interface ReportRow {
   id: string
   date: string
   description: string
-  recipient: string
+  recipient: string | null
   category: string
   division: string
   inAmount: number
   outAmount: number
   balance: number
   isInternalTransfer: boolean
+  type: 'OPENING' | 'TRANSACTION' | 'ALLOCATION_IN' | 'ALLOCATION_OUT' | 'CLOSING'
+  referenceId: string | null
 }
 
 export interface ReportData {
@@ -144,16 +146,18 @@ export async function getRekapReport(
     const desc = item.description ? `Dari ${sourceName} - ${item.description}` : `Dropping/Transfer dari ${sourceName}`
 
     reportRows.push({
-      id: `alloc-in-${item.id}`,
+      id: `alloc_in_${item.id}`,
       date: item.date,
-      description: desc,
+      description: item.description || 'Alokasi Dana Masuk',
       recipient: '—',
       category: '—',
       division: '—',
       inAmount: item.amount,
       outAmount: 0,
       balance: 0,
-      isInternalTransfer: false
+      isInternalTransfer: true,
+      type: 'ALLOCATION_IN',
+      referenceId: item.id
     })
   }
 
@@ -166,16 +170,18 @@ export async function getRekapReport(
     const desc = item.description ? `Ke ${destName} - ${item.description}` : `Transfer Kas ke ${destName}`
 
     reportRows.push({
-      id: `alloc-out-${item.id}`,
+      id: `alloc_out_${item.id}`,
       date: item.date,
-      description: desc,
+      description: item.description || 'Mutasi Keluar',
       recipient: '—',
       category: '—',
       division: '—',
       inAmount: 0,
       outAmount: item.amount,
       balance: 0,
-      isInternalTransfer: false // Because we skip internal, what makes it here is external out
+      isInternalTransfer: true,
+      type: 'ALLOCATION_OUT',
+      referenceId: item.id
     })
   }
 
@@ -185,7 +191,7 @@ export async function getRekapReport(
     const divisionName = (item.division as any)?.name || '—'
 
     reportRows.push({
-      id: `trans-${item.id}`,
+      id: `trans_${item.id}`,
       date: item.date,
       description: item.description || '—',
       recipient: item.recipient_name,
@@ -194,7 +200,9 @@ export async function getRekapReport(
       inAmount: 0,
       outAmount: item.amount,
       balance: 0,
-      isInternalTransfer: false
+      isInternalTransfer: false,
+      type: 'TRANSACTION',
+      referenceId: item.id
     })
   }
 
@@ -231,5 +239,183 @@ export async function getRekapReport(
     totalOut,
     endingBalance: currentBalance,
     rows: reportRows
+  }
+}
+
+// --- NEW CODE FOR EXCEL CONSOLIDATED REPORT ---
+
+export interface MatrixCategoryDTO {
+  categoryId: string
+  categoryName: string
+  totalAmount: number
+  divisions: Record<string, number> // divisionId -> amount
+}
+
+export interface CashHolderDTO {
+  cashSourceId: string
+  cashSourceName: string
+  jumlahUang: number // Opening Balance + Allocations In (Net of Allocations Out)
+  realisasi: number  // Transactions out during the month
+  sisa: number       // jumlahUang - realisasi (Ending Balance)
+}
+
+export interface ConsolidatedMatrixReportDTO {
+  month: number
+  year: number
+  paguAmount: number
+  categories: MatrixCategoryDTO[]
+  divisions: { id: string, name: string }[]
+  cashHolders: CashHolderDTO[]
+  globalTotals: {
+    totalCategory: number
+    totalMatrix: number
+    totalCashHolderRealisasi: number
+    totalTransaction: number // Used for reconciliation
+  }
+}
+
+export async function getConsolidatedMatrixReport(month: number, year: number): Promise<ConsolidatedMatrixReportDTO> {
+  const supabase = await createClient()
+
+  // 1. Resolve period dates
+  const startDateStr = `${year}-${String(month).padStart(2, '0')}-01`
+  const endDate = new Date(year, month, 0)
+  const endDateStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`
+
+  // 2. Fetch Master Data
+  const [categoriesRes, divisionsRes, cashSourcesRes] = await Promise.all([
+    supabase.from('categories').select('id, name').order('name'),
+    supabase.from('divisions').select('id, name').order('name'),
+    supabase.from('cash_sources').select('id, name, type').order('type', { ascending: false }).order('name')
+  ])
+
+  const categories: any[] = categoriesRes.data || []
+  const divisions: any[] = divisionsRes.data || []
+  const cashSources: any[] = cashSourcesRes.data || []
+
+  // 3. Fetch Transactions for the period
+  const transPeriodRes = await supabase
+    .from('transactions')
+    .select('id, amount, category_id, division_id, cash_source_id')
+    .gte('date', startDateStr)
+    .lte('date', endDateStr)
+
+  const transactionsPeriod: any[] = transPeriodRes.data || []
+  const totalTransaction = transactionsPeriod.reduce((sum, t) => sum + Number(t.amount || 0), 0)
+
+  // 4. Build Category Matrix
+  let totalCategory = 0
+  let totalMatrix = 0
+  const matrixCategories: MatrixCategoryDTO[] = categories.map(cat => ({
+    categoryId: cat.id,
+    categoryName: cat.name,
+    totalAmount: 0,
+    divisions: divisions.reduce((acc, div) => {
+      acc[div.id] = 0
+      return acc
+    }, {} as Record<string, number>)
+  }))
+
+  transactionsPeriod.forEach(t => {
+    const amount = Number(t.amount || 0)
+    const cat = matrixCategories.find(c => c.categoryId === t.category_id)
+    if (cat) {
+      cat.totalAmount += amount
+      totalCategory += amount
+      if (t.division_id && cat.divisions[t.division_id] !== undefined) {
+        cat.divisions[t.division_id] += amount
+        totalMatrix += amount
+      }
+    }
+  })
+
+  // 5. Build Cash Holders
+  const cashHolders: CashHolderDTO[] = []
+  let totalCashHolderRealisasi = 0
+
+  // We need to calculate Opening Balance & Allocations for EACH cash source
+  const [allocInPastRes, allocOutPastRes, transOutPastRes, allocInPeriodRes, allocOutPeriodRes] = await Promise.all([
+    supabase.from('allocations').select('amount, destination_id').lt('date', startDateStr),
+    supabase.from('allocations').select('amount, source_id').lt('date', startDateStr),
+    supabase.from('transactions').select('amount, cash_source_id').lt('date', startDateStr),
+    supabase.from('allocations').select('amount, destination_id').gte('date', startDateStr).lte('date', endDateStr),
+    supabase.from('allocations').select('amount, source_id').gte('date', startDateStr).lte('date', endDateStr)
+  ])
+
+  const allocInPast: any[] = allocInPastRes.data || []
+  const allocOutPast: any[] = allocOutPastRes.data || []
+  const transOutPast: any[] = transOutPastRes.data || []
+  const allocInPeriod: any[] = allocInPeriodRes.data || []
+  const allocOutPeriod: any[] = allocOutPeriodRes.data || []
+
+  for (const source of cashSources) {
+    // Abaikan akun virtual "Modal Awal / Sistem" dari laporan Excel konsolidasi
+    if (source.name.toLowerCase().includes('modal awal') || source.name.toLowerCase().includes('sistem')) {
+      continue
+    }
+
+    let openingBalance = 0
+    
+    // Past IN
+    allocInPast.filter(a => a.destination_id === source.id).forEach(a => openingBalance += Number(a.amount || 0))
+    // Past OUT
+    allocOutPast.filter(a => a.source_id === source.id).forEach(a => openingBalance -= Number(a.amount || 0))
+    // Past Trans
+    transOutPast.filter(t => t.cash_source_id === source.id).forEach(t => openingBalance -= Number(t.amount || 0))
+
+    let allocInThisMonth = 0
+    let allocOutThisMonth = 0
+    
+    allocInPeriod.filter(a => a.destination_id === source.id).forEach(a => allocInThisMonth += Number(a.amount || 0))
+    allocOutPeriod.filter(a => a.source_id === source.id).forEach(a => allocOutThisMonth += Number(a.amount || 0))
+
+    const jumlahUang = openingBalance + allocInThisMonth - allocOutThisMonth
+    
+    let realisasi = 0
+    transactionsPeriod.filter(t => t.cash_source_id === source.id).forEach(t => realisasi += Number(t.amount || 0))
+    
+    totalCashHolderRealisasi += realisasi
+
+    // We only want to show cash holders that have either balance or activity
+    if (jumlahUang !== 0 || realisasi !== 0 || openingBalance !== 0) {
+      cashHolders.push({
+        cashSourceId: source.id,
+        cashSourceName: source.name,
+        jumlahUang,
+        realisasi,
+        sisa: jumlahUang - realisasi
+      })
+    }
+  }
+
+  // 6. Reconciliation Check
+  if (totalCategory !== totalTransaction) {
+    const unmatched = transactionsPeriod.filter(t => !matrixCategories.find(c => c.categoryId === t.category_id))
+    throw new Error(`Reconciliation Failed: Category Total (${totalCategory}) != Total Transactions (${totalTransaction}). Unmatched trans count: ${unmatched.length}`)
+  }
+  if (totalCashHolderRealisasi !== totalTransaction) {
+    const unmatched = transactionsPeriod.filter(t => !cashSources.find(c => c.id === t.cash_source_id))
+    throw new Error(`Reconciliation Failed: Cash Holder Realization (${totalCashHolderRealisasi}) != Total Transactions (${totalTransaction}). Unmatched source trans count: ${unmatched.length}`)
+  }
+  // Note: totalMatrix might not equal totalTransaction if some transactions don't have a division. 
+  // We should enforce it if the template assumes all transactions have a division.
+  // Actually, standard behavior is they all should have divisions.
+
+  const modalAwal = cashSources.find(c => c.name.toLowerCase().includes('modal awal') || c.name.toLowerCase().includes('sistem'))
+  const paguAmount = modalAwal ? allocOutPeriod.filter(a => a.source_id === modalAwal.id).reduce((sum, a) => sum + Number(a.amount || 0), 0) : 0
+
+  return {
+    month,
+    year,
+    paguAmount,
+    categories: matrixCategories,
+    divisions,
+    cashHolders,
+    globalTotals: {
+      totalCategory,
+      totalMatrix,
+      totalCashHolderRealisasi,
+      totalTransaction
+    }
   }
 }

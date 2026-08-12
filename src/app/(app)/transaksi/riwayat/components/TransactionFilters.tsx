@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
+import { IndonesianDatePicker } from '@/app/components/IndonesianDatePicker'
 
 interface FilterProps {
   cashSources: { cash_source_id: string; name: string }[]
@@ -39,20 +40,20 @@ export function TransactionFilters({ cashSources, categories }: FilterProps) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
         <div>
           <label className="block text-xs font-medium text-slate-500 mb-1">Dari Tanggal</label>
-          <input
-            type="date"
+          <IndonesianDatePicker
+            name="from_date"
             value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            className="w-full px-3 py-1.5 border border-slate-300 rounded text-sm outline-none focus:ring-1 focus:ring-blue-500"
+            onChange={setDateFrom}
+            placeholder="dd/mm/yyyy"
           />
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-500 mb-1">Sampai Tanggal</label>
-          <input
-            type="date"
+          <IndonesianDatePicker
+            name="to_date"
             value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            className="w-full px-3 py-1.5 border border-slate-300 rounded text-sm outline-none focus:ring-1 focus:ring-blue-500"
+            onChange={setDateTo}
+            placeholder="dd/mm/yyyy"
           />
         </div>
         <div>

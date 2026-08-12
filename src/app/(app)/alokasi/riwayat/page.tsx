@@ -12,12 +12,13 @@ function formatRupiah(amount: number): string {
   }).format(amount)
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  })
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return '—'
+  const parts = dateStr.split('-')
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`
+  }
+  return dateStr
 }
 
 function formatTime(dateStr: string): string {

@@ -70,11 +70,10 @@ export default async function DashboardPage() {
 
         <div className="bg-white rounded-lg border border-slate-200 p-5">
           <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-            Jumlah Transaksi
+            Total Sisa Saldo Anda
           </p>
           <p className="text-2xl font-bold text-slate-800 mt-1">
-            {stats.transactionCountThisMonth}
-            <span className="text-sm font-normal text-slate-400 ml-1">transaksi</span>
+            {formatRupiah(cashSources.reduce((sum, cs) => sum + cs.balance, 0))}
           </p>
         </div>
       </div>
@@ -86,44 +85,35 @@ export default async function DashboardPage() {
             {profile.role === 'ADMIN' ? 'Seluruh Sumber Dana' : 'Sumber Dana Anda'}
           </h3>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs font-medium text-slate-500 uppercase tracking-wider border-b border-slate-100">
-                <th className="px-5 py-3">Kode</th>
-                <th className="px-5 py-3">Nama</th>
-                <th className="px-5 py-3">Tipe</th>
-                <th className="px-5 py-3 text-right">Saldo</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {cashSources.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-5 py-8 text-center text-slate-400">
-                    Tidak ada sumber dana yang dapat diakses.
-                  </td>
-                </tr>
-              ) : (
-                cashSources.map((cs) => (
-                  <tr key={cs.cash_source_id} className="hover:bg-slate-50">
-                    <td className="px-5 py-3 font-mono text-xs text-slate-600">{cs.code}</td>
-                    <td className="px-5 py-3 font-medium text-slate-800">{cs.name}</td>
-                    <td className="px-5 py-3">
-                      <span className={`inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded ${
-                        cs.type === 'MAIN' ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-600'
-                      }`}>
-                        {cs.type}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-right font-medium text-slate-800">
-                      {formatRupiah(cs.balance)}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+          <div className="p-5">
+            {cashSources.length === 0 ? (
+              <div className="text-center py-8 text-slate-400 text-sm">
+                Tidak ada sumber dana yang dapat diakses.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {cashSources.map((cs) => (
+                  <div 
+                    key={cs.cash_source_id} 
+                    className="flex flex-col justify-between p-4 rounded-xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <h4 className="font-semibold text-slate-800 line-clamp-2">{cs.name}</h4>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 font-medium mb-1 uppercase tracking-wider">Sisa Saldo</p>
+                      <p className="text-lg font-bold text-slate-900">{formatRupiah(cs.balance)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
       </div>
 
       {/* Recent Transactions */}

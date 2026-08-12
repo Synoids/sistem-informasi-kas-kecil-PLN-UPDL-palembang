@@ -59,8 +59,13 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   // Route protection
-  const isAuthRoute = request.nextUrl.pathname.startsWith('/login')
+  const isAuthRoute = request.nextUrl.pathname.startsWith('/login') || 
+                      request.nextUrl.pathname.startsWith('/forgot-password') ||
+                      request.nextUrl.pathname.startsWith('/auth/callback')
   
+  const isResetPasswordRoute = request.nextUrl.pathname.startsWith('/reset-password')
+  
+  // Public routes that don't need a session
   if (!user && !isAuthRoute) {
     // no user, potentially respond by redirecting the user to the login page
     const url = request.nextUrl.clone()
@@ -68,8 +73,9 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // If user is logged in, but tries to access login or forgot password, redirect to home.
+  // Exception: /reset-password NEEDS the user to be logged in via the recovery token.
   if (user && isAuthRoute) {
-    // user is logged in, but tries to access login page, redirect to home
     const url = request.nextUrl.clone()
     url.pathname = '/'
     return NextResponse.redirect(url)

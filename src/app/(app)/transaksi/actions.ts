@@ -11,7 +11,7 @@ export async function submitTransaction(formData: FormData) {
   const args: CreateArgs = {
     p_date: formData.get('date') as string,
     p_cash_source_id: formData.get('cash_source_id') as string,
-    p_recipient_name: (formData.get('recipient_name') as string).trim(),
+    p_recipient_name: (formData.get('recipient_name') as string)?.trim() || '-',
     p_category_id: formData.get('category_id') as string,
     p_vehicle_number: (formData.get('vehicle_number') as string)?.trim() || null,
     p_division_id: formData.get('division_id') as string,
@@ -35,7 +35,7 @@ export async function editTransaction(formData: FormData) {
     p_transaction_id: formData.get('transaction_id') as string,
     p_date: formData.get('date') as string,
     p_cash_source_id: formData.get('cash_source_id') as string,
-    p_recipient_name: (formData.get('recipient_name') as string).trim(),
+    p_recipient_name: (formData.get('recipient_name') as string)?.trim() || '-',
     p_category_id: formData.get('category_id') as string,
     p_vehicle_number: (formData.get('vehicle_number') as string)?.trim() || null,
     p_division_id: formData.get('division_id') as string,

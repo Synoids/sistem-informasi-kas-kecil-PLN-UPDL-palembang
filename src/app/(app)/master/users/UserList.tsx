@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { ProfileAdminView, CashSourceAdminView } from '@/lib/services/master-data.service'
-import { createProfileAction, updateProfileAction, updateUserAccessAction } from '@/app/(app)/master/actions'
+import { createProfileAction, updateProfileAction, updateUserAccessAction, resetUserPasswordAction } from '@/app/(app)/master/actions'
 import { showToast } from '@/app/components/Toast'
 
 export function UserList({ 
@@ -19,10 +19,12 @@ export function UserList({
   // Modals state
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
   const [isAccessModalOpen, setIsAccessModalOpen] = useState(false)
+  const [isResetPasswordModalOpen, setIsResetPasswordModalOpen] = useState(false)
   
   const [isPending, setIsPending] = useState(false)
   const [editingProfile, setEditingProfile] = useState<ProfileAdminView | null>(null)
   const [managingAccessUser, setManagingAccessUser] = useState<ProfileAdminView | null>(null)
+  const [resetPasswordTarget, setResetPasswordTarget] = useState<ProfileAdminView | null>(null)
   
   // Access state
   const [selectedAccess, setSelectedAccess] = useState<Set<string>>(new Set())
@@ -47,11 +49,22 @@ export function UserList({
     setIsAccessModalOpen(true)
   }
 
+  function openResetPasswordModal(profile: ProfileAdminView) {
+    if (profile.id === currentUserId) {
+      showToast('Gunakan menu pemulihan kata sandi untuk mengubah kata sandi akun Anda sendiri.', 'error')
+      return
+    }
+    setResetPasswordTarget(profile)
+    setIsResetPasswordModalOpen(true)
+  }
+
   function closeModals() {
     setIsProfileModalOpen(false)
     setIsAccessModalOpen(false)
+    setIsResetPasswordModalOpen(false)
     setEditingProfile(null)
     setManagingAccessUser(null)
+    setResetPasswordTarget(null)
   }
 
   async function handleProfileSubmit(formData: FormData) {
@@ -114,6 +127,24 @@ export function UserList({
       newSet.add(cashSourceId)
     }
     setSelectedAccess(newSet)
+  }
+
+  async function handleResetPasswordSubmit(formData: FormData) {
+    if (!resetPasswordTarget) return
+    setIsPending(true)
+    try {
+      const result = await resetUserPasswordAction(resetPasswordTarget.id, formData)
+      if (result?.error) {
+        showToast(result.error, 'error')
+      } else {
+        showToast('Password berhasil direset.', 'success')
+        closeModals()
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Terjadi kesalahan', 'error')
+    } finally {
+      setIsPending(false)
+    }
   }
 
   return (
@@ -180,6 +211,13 @@ export function UserList({
                       >
                         Kelola Akses
                       </button>
+                      <button 
+                        onClick={() => openResetPasswordModal(item)}
+                        disabled={isSelf}
+                        className={`transition-colors ${isSelf ? 'text-slate-300 cursor-not-allowed hidden' : 'text-rose-600 hover:text-rose-800'}`}
+                      >
+                        Reset Password
+                      </button>
                     </td>
                   </tr>
                 )
@@ -192,8 +230,8 @@ export function UserList({
       {/* PROFILE MODAL */}
       {isProfileModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center shrink-0">
               <h3 className="text-lg font-semibold text-slate-800">
                 {editingProfile ? 'Edit Profile' : 'Tambah Profile'}
               </h3>
@@ -202,26 +240,24 @@ export function UserList({
               </button>
             </div>
             
-            <form action={handleProfileSubmit} className="p-6">
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="id" className="block text-sm font-medium text-slate-700 mb-1">
-                    User ID (UID) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    id="id"
-                    name="id"
-                    required
-                    readOnly={!!editingProfile}
-                    defaultValue={editingProfile?.id || ''}
-                    className={`w-full px-3 py-2 border border-slate-300 rounded-md outline-none text-sm font-mono ${editingProfile ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'focus:ring-2 focus:ring-blue-500 focus:border-blue-500'}`}
-                    placeholder="Contoh: a1b2c3d4-..."
-                  />
-                  {!editingProfile && (
-                    <p className="text-xs text-slate-500 mt-1">Salin UID pengguna dari Supabase Dashboard.</p>
-                  )}
-                </div>
+            <form action={handleProfileSubmit} className="flex flex-col flex-1 overflow-hidden">
+              <div className="p-6 overflow-y-auto space-y-4">
+                {/* Hanya tampilkan UID saat Edit mode */}
+                {editingProfile && (
+                  <div>
+                    <label htmlFor="id" className="block text-sm font-medium text-slate-700 mb-1">
+                      User ID (UID)
+                    </label>
+                    <input
+                      type="text"
+                      id="id"
+                      name="id"
+                      readOnly
+                      defaultValue={editingProfile.id}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md outline-none text-sm font-mono bg-slate-100 text-slate-500 cursor-not-allowed"
+                    />
+                  </div>
+                )}
                 
                 <div>
                   <label htmlFor="full_name" className="block text-sm font-medium text-slate-700 mb-1">
@@ -236,6 +272,41 @@ export function UserList({
                     className="w-full px-3 py-2 border border-slate-300 rounded-md outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                   />
                 </div>
+
+                {!editingProfile && (
+                  <>
+                    <div>
+                      <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1">
+                        Alamat Email <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        required
+                        className="w-full px-3 py-2 border border-slate-300 rounded-md outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        placeholder="nama@updl.pln.co.id"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1">
+                        Kata Sandi Awal <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        id="password"
+                        name="password"
+                        required
+                        minLength={6}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-md outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        placeholder="Minimal 6 karakter"
+                      />
+                      <p className="text-xs text-amber-600 mt-1.5 font-medium bg-amber-50 p-2 rounded border border-amber-100">
+                        ⚠ Jangan gunakan kata sandi yang sama dengan akun penting lainnya. Sampaikan kata sandi awal ini kepada pegawai secara aman.
+                      </p>
+                    </div>
+                  </>
+                )}
 
                 <div>
                   <label htmlFor="role" className="block text-sm font-medium text-slate-700 mb-1">
@@ -252,9 +323,34 @@ export function UserList({
                     <option value="ADMIN">ADMIN</option>
                   </select>
                 </div>
+
+                {!editingProfile && (
+                  <div className="pt-2 border-t border-slate-100 mt-4">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Akses Sumber Dana Awal (Opsional)
+                    </label>
+                    <div className="max-h-40 overflow-y-auto space-y-2 border border-slate-200 rounded-md p-2 bg-slate-50">
+                      {cashSources.filter(cs => cs.is_active).length === 0 ? (
+                        <p className="text-xs text-slate-500 italic">Belum ada Sumber Dana aktif.</p>
+                      ) : (
+                        cashSources.filter(cs => cs.is_active).map(cs => (
+                          <label key={cs.id} className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer p-1 hover:bg-slate-100 rounded">
+                            <input 
+                              type="checkbox" 
+                              name="cash_source_ids" 
+                              value={cs.id} 
+                              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" 
+                            />
+                            {cs.name} <span className="text-xs text-slate-400 font-mono">({cs.code})</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
               
-              <div className="mt-8 flex justify-end gap-3">
+              <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 shrink-0 bg-slate-50">
                 <button
                   type="button"
                   onClick={closeModals}
@@ -342,6 +438,79 @@ export function UserList({
                 {isPending ? 'Menyimpan...' : 'Simpan Akses'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* RESET PASSWORD MODAL */}
+      {isResetPasswordModalOpen && resetPasswordTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center shrink-0">
+              <h3 className="text-lg font-semibold text-rose-700">Reset Password</h3>
+              <button onClick={closeModals} className="text-slate-400 hover:text-slate-600">
+                ✕
+              </button>
+            </div>
+            
+            <form action={handleResetPasswordSubmit} className="flex flex-col flex-1 overflow-hidden">
+              <div className="p-6 overflow-y-auto space-y-4">
+                <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 space-y-1">
+                  <p className="text-sm text-slate-500">User:</p>
+                  <p className="font-semibold text-slate-800">{resetPasswordTarget.full_name}</p>
+                </div>
+
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1">
+                    Password Sementara Baru <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    required
+                    minLength={6}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 text-sm"
+                    placeholder="Minimal 6 karakter"
+                  />
+                  <p className="text-xs text-amber-600 mt-2 font-medium bg-amber-50 p-2 rounded border border-amber-100">
+                    ⚠ Gunakan password sementara yang cukup aman dan sampaikan kepada pengguna secara langsung. Pengguna disarankan menggantinya setelah berhasil login.
+                  </p>
+                </div>
+
+                <div>
+                  <label htmlFor="confirm_password" className="block text-sm font-medium text-slate-700 mb-1">
+                    Konfirmasi Password <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    id="confirm_password"
+                    name="confirm_password"
+                    required
+                    minLength={6}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 text-sm"
+                    placeholder="Ulangi password"
+                  />
+                </div>
+              </div>
+              
+              <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 shrink-0 bg-slate-50">
+                <button
+                  type="button"
+                  onClick={closeModals}
+                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-500"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isPending}
+                  className="px-4 py-2 text-sm font-medium text-white bg-rose-600 rounded-md hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 disabled:opacity-50"
+                >
+                  {isPending ? 'Menyimpan...' : 'Reset Password'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

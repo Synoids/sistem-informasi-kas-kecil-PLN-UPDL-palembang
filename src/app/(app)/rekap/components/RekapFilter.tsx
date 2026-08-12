@@ -1,7 +1,8 @@
 'use client'
 
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { Download } from 'lucide-react'
 
 export function RekapFilter({ 
   months, 
@@ -75,12 +76,24 @@ export function RekapFilter({
         </select>
       </div>
 
-      <button 
-        onClick={handleFilter}
-        className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-md text-sm font-medium transition-colors"
-      >
-        Tampilkan
-      </button>
+      <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-2">
+        <button 
+          onClick={handleFilter}
+          className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-md text-sm font-medium transition-colors"
+        >
+          Tampilkan
+        </button>
+        {isAdmin && source === 'ALL' && (
+          <a
+            href={`/api/export-excel?month=${month}&year=${year}`}
+            download
+            className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2"
+          >
+            <Download className="w-4 h-4" />
+            Export Excel
+          </a>
+        )}
+      </div>
     </div>
   )
 }

@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { submitTransaction, editTransaction } from '../actions'
 import { showToast } from '@/app/components/Toast'
+import { IndonesianDatePicker } from '@/app/components/IndonesianDatePicker'
 
 interface CashSource {
   cash_source_id: string
@@ -81,8 +82,8 @@ export function TransactionForm({
       setLoading(false)
       return
     }
-    if (!(formData.get('recipient_name') as string)?.trim()) {
-      setError('Nama penerima wajib diisi.')
+    if (!(formData.get('date') as string)?.trim()) {
+      setError('Tanggal transaksi wajib diisi.')
       setLoading(false)
       return
     }
@@ -114,28 +115,27 @@ export function TransactionForm({
   }
 
   return (
-    <form ref={formRef} action={handleSubmit} className="space-y-5">
+    <form ref={formRef} action={handleSubmit} className="space-y-8 max-w-2xl">
       {mode === 'edit' && defaultValues.transaction_id && (
         <input type="hidden" name="transaction_id" value={defaultValues.transaction_id} />
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* 1. Tanggal */}
+      {/* BAGIAN 1: INFORMASI DASAR */}
+      <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 space-y-5">
+        <h3 className="font-semibold text-slate-800 border-b border-slate-200 pb-2">1. Informasi Dasar</h3>
+        
         <div>
           <label htmlFor="date" className="block text-sm font-medium text-slate-700 mb-1">
-            Tanggal <span className="text-red-500">*</span>
+            Tanggal Transaksi <span className="text-red-500">*</span>
           </label>
-          <input
+          <IndonesianDatePicker
             id="date"
             name="date"
-            type="date"
             required
             defaultValue={defaultValues.date ?? today}
-            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
           />
         </div>
 
-        {/* 2. Sumber Dana */}
         <div>
           <label htmlFor="cash_source_id" className="block text-sm font-medium text-slate-700 mb-1">
             Sumber Dana <span className="text-red-500">*</span>
@@ -156,23 +156,34 @@ export function TransactionForm({
           </select>
         </div>
 
-        {/* 3. Nama Penerima */}
         <div>
-          <label htmlFor="recipient_name" className="block text-sm font-medium text-slate-700 mb-1">
-            Nama Penerima <span className="text-red-500">*</span>
+          <label htmlFor="amount" className="block text-sm font-medium text-slate-700 mb-1">
+            Nominal (Rp) <span className="text-red-500">*</span>
           </label>
-          <input
-            id="recipient_name"
-            name="recipient_name"
-            type="text"
-            required
-            defaultValue={defaultValues.recipient_name ?? ''}
-            placeholder="contoh: Pak Abu, SPBU Pertamina"
-            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-          />
+          <div className="relative">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <span className="text-slate-500 sm:text-sm">Rp</span>
+            </div>
+            <input type="hidden" name="amount" value={amountStr.replace(/\./g, '')} />
+            <input
+              id="amount_display"
+              type="text"
+              inputMode="numeric"
+              required
+              autoComplete="off"
+              value={amountStr}
+              onChange={handleAmountChange}
+              placeholder=""
+              className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-semibold text-lg"
+            />
+          </div>
         </div>
+      </div>
 
-        {/* 4. Kategori Keperluan */}
+      {/* BAGIAN 2: RINCIAN KEPERLUAN */}
+      <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 space-y-5">
+        <h3 className="font-semibold text-slate-800 border-b border-slate-200 pb-2">2. Rincian Keperluan</h3>
+        
         <div>
           <label htmlFor="category_id" className="block text-sm font-medium text-slate-700 mb-1">
             Kategori Keperluan <span className="text-red-500">*</span>
@@ -191,22 +202,6 @@ export function TransactionForm({
           </select>
         </div>
 
-        {/* 5. No Polisi / No Kartu Etoll */}
-        <div>
-          <label htmlFor="vehicle_number" className="block text-sm font-medium text-slate-700 mb-1">
-            No Polisi / No Kartu E-Toll
-          </label>
-          <input
-            id="vehicle_number"
-            name="vehicle_number"
-            type="text"
-            defaultValue={defaultValues.vehicle_number ?? ''}
-            placeholder="opsional"
-            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-          />
-        </div>
-
-        {/* 6. Bidang / Sub Bidang */}
         <div>
           <label htmlFor="division_id" className="block text-sm font-medium text-slate-700 mb-1">
             Bidang / Sub Bidang <span className="text-red-500">*</span>
@@ -225,72 +220,78 @@ export function TransactionForm({
           </select>
         </div>
 
-        {/* 7. Nominal */}
         <div>
-          <label htmlFor="amount" className="block text-sm font-medium text-slate-700 mb-1">
-            Nominal (Rp) <span className="text-red-500">*</span>
+          <label htmlFor="recipient_name" className="block text-sm font-medium text-slate-700 mb-1">
+            Nama Penerima
           </label>
-          <div className="relative">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <span className="text-slate-500 sm:text-sm">Rp</span>
-            </div>
-            <input type="hidden" name="amount" value={amountStr.replace(/\./g, '')} />
-            <input
-              id="amount_display"
-              type="text"
-              inputMode="numeric"
-              required
-              value={amountStr}
-              onChange={handleAmountChange}
-              placeholder="100.000"
-              className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-            />
-          </div>
+          <input
+            id="recipient_name"
+            name="recipient_name"
+            type="text"
+            autoComplete="off"
+            defaultValue={defaultValues.recipient_name ?? ''}
+            placeholder="Isi jika ada (opsional)"
+            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+          />
         </div>
 
-        {/* 8. Deskripsi Keperluan */}
         <div>
           <label htmlFor="description" className="block text-sm font-medium text-slate-700 mb-1">
-            Deskripsi Keperluan
+            Deskripsi Spesifik
           </label>
-          <input
+          <textarea
             id="description"
             name="description"
-            type="text"
+            rows={2}
             defaultValue={defaultValues.description ?? ''}
             placeholder="opsional"
-            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-y"
           />
         </div>
 
-        {/* 9. Tanggal Kuitansi */}
         <div>
-          <label htmlFor="receipt_date" className="block text-sm font-medium text-slate-700 mb-1">
-            Tanggal Kuitansi <span className="text-red-500">*</span>
+          <label htmlFor="vehicle_number" className="block text-sm font-medium text-slate-700 mb-1">
+            No Polisi / No Kartu E-Toll
           </label>
           <input
-            id="receipt_date"
-            name="receipt_date"
-            type="date"
-            required
-            defaultValue={defaultValues.receipt_date ?? today}
+            id="vehicle_number"
+            name="vehicle_number"
+            type="text"
+            defaultValue={defaultValues.vehicle_number ?? ''}
+            placeholder="opsional (khusus kategori BBM/Toll)"
             className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
           />
         </div>
+      </div>
 
-        {/* 10. Tanggal Penyerahan */}
-        <div>
-          <label htmlFor="handover_date" className="block text-sm font-medium text-slate-700 mb-1">
-            Tanggal Penyerahan <span className="text-red-500">*</span>
-          </label>
-          <input
-            id="handover_date"
-            name="handover_date"
-            type="date"
-            required
-            defaultValue={defaultValues.handover_date ?? today}
-            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-          />
+      {/* BAGIAN 3: ADMINISTRASI KUITANSI */}
+      <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 space-y-5">
+        <h3 className="font-semibold text-slate-800 border-b border-slate-200 pb-2">3. Administrasi Kuitansi</h3>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="receipt_date" className="block text-sm font-medium text-slate-700 mb-1">
+              Tanggal Kuitansi <span className="text-red-500">*</span>
+            </label>
+            <IndonesianDatePicker
+              id="receipt_date"
+              name="receipt_date"
+              required
+              defaultValue={defaultValues.receipt_date ?? today}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="handover_date" className="block text-sm font-medium text-slate-700 mb-1">
+              Tanggal Penyerahan <span className="text-red-500">*</span>
+            </label>
+            <IndonesianDatePicker
+              id="handover_date"
+              name="handover_date"
+              required
+              defaultValue={defaultValues.handover_date ?? today}
+            />
+          </div>
         </div>
       </div>
 

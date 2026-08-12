@@ -37,9 +37,17 @@ export function Sidebar({ role, fullName }: { role: 'ADMIN' | 'USER'; fullName: 
 
       <nav className="flex-1 px-3 py-4 space-y-1">
         {items.map((item) => {
-          const isActive = item.href === '/'
-            ? pathname === '/'
-            : pathname.startsWith(item.href)
+          let isActive = false
+          if (item.href === '/') {
+            isActive = pathname === '/'
+          } else {
+            isActive = pathname.startsWith(item.href)
+            // Prevent "Input Transaksi" from being highlighted when in "Riwayat Transaksi"
+            if (item.href === '/transaksi' && pathname.startsWith('/transaksi/riwayat')) {
+              isActive = false
+            }
+          }
+
           return (
             <Link
               key={item.href}

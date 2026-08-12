@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Database } from '@/lib/types/database.types'
 import { showToast } from './Toast'
+import { IndonesianDatePicker } from '@/app/components/IndonesianDatePicker'
 
 type CashSourceBalance = Database['public']['Views']['v_cash_source_balances']['Row']
 
@@ -85,13 +86,11 @@ export function AllocationForm({ cashSources }: AllocationFormProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div>
           <label htmlFor="date" className="block text-sm font-medium text-slate-700 mb-1">Tanggal</label>
-          <input
+          <IndonesianDatePicker
             id="date"
             name="date"
-            type="date"
             required
             defaultValue={today}
-            className="block w-full rounded-md border border-slate-300 py-2 px-3 text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
           />
         </div>
 

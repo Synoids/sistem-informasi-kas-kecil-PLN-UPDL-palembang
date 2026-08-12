@@ -303,21 +303,70 @@ export async function toggleCashSourceActiveAction(id: string, currentStatus: bo
 export async function createProfileAction(formData: FormData) {
   try {
     await checkAdmin()
-    const id = (formData.get('id') as string)?.trim()
     const full_name = (formData.get('full_name') as string)?.trim()
+    const email = (formData.get('email') as string)?.trim()
+    const password = (formData.get('password') as string)?.trim()
     const role = formData.get('role') as 'ADMIN' | 'USER'
+    const cashSourceIds = formData.getAll('cash_source_ids') as string[]
 
-    if (!id) return { error: 'User UID wajib diisi.' }
     if (!full_name) return { error: 'Nama Lengkap wajib diisi.' }
+    if (!email) return { error: 'Email wajib diisi.' }
+    if (!password) return { error: 'Kata sandi awal wajib diisi.' }
     if (role !== 'ADMIN' && role !== 'USER') return { error: 'Role tidak valid.' }
 
-    const supabase = await createClient() as any
-    const { error } = await supabase.from('profiles').insert({ id, full_name, role })
+    // 1. Create Auth User using Admin Client
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const adminClient = createAdminClient()
 
-    if (error) {
-      if (error.code === '23503') return { error: 'User UID tidak valid atau belum terdaftar di Supabase Auth.' }
-      if (error.code === '23505') return { error: 'Profile untuk User ID tersebut sudah terdaftar.' }
-      return { error: handleSupabaseError(error) }
+    const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true // bypass email confirmation
+    })
+
+    if (authError) {
+      if (authError.message.includes('already been registered')) {
+        return { error: 'Email tersebut sudah digunakan.' }
+      }
+      return { error: 'Gagal membuat akun autentikasi: ' + authError.message }
+    }
+
+    const newAuthUserId = authData.user.id
+
+    try {
+      const supabase = await createClient() as any
+      
+      // 2. Create Profile
+      const { error: profileError } = await supabase.from('profiles').insert({ 
+        id: newAuthUserId, 
+        full_name, 
+        role 
+      })
+
+      if (profileError) throw profileError
+
+      // 3. Create Cash Source Access
+      if (cashSourceIds && cashSourceIds.length > 0) {
+        const insertData = cashSourceIds.map(cash_source_id => ({ 
+          user_id: newAuthUserId, 
+          cash_source_id 
+        }))
+        const { error: accessError } = await supabase.from('user_cash_source_access').insert(insertData)
+        
+        if (accessError) {
+          // Attempt partial cleanup for access before throwing
+          await supabase.from('user_cash_source_access').delete().eq('user_id', newAuthUserId)
+          throw accessError
+        }
+      }
+
+    } catch (err: any) {
+      // ROLLBACK STRATEGY
+      // If profile or access fails, delete the newly created auth user.
+      await adminClient.auth.admin.deleteUser(newAuthUserId)
+      
+      if (err.code === '23505') return { error: 'Profile untuk User ID tersebut sudah terdaftar.' }
+      return { error: 'Gagal membuat profil atau akses (Sistem dibatalkan): ' + (err.message || 'Error internal') }
     }
     
     revalidatePath('/master/users')
@@ -394,5 +443,51 @@ export async function updateUserAccessAction(userId: string, selectedCashSourceI
     return { success: true }
   } catch (err: any) {
     return { error: err.message || 'Error' }
+  }
+}
+
+export async function resetUserPasswordAction(userId: string, formData: FormData) {
+  try {
+    await checkAdmin()
+    const profile = await getCurrentProfile()
+    
+    // Prevent self-reset via Admin Panel
+    if (profile?.id === userId) {
+      return { error: 'Gunakan menu pemulihan kata sandi untuk mengubah kata sandi akun Anda sendiri.' }
+    }
+
+    const password = formData.get('password') as string
+    const confirmPassword = formData.get('confirm_password') as string
+
+    if (!password || password.length < 6) {
+      return { error: 'Password tidak memenuhi persyaratan (Minimal 6 karakter).' }
+    }
+
+    if (password !== confirmPassword) {
+      return { error: 'Konfirmasi password tidak cocok.' }
+    }
+
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const adminClient = createAdminClient()
+
+    const { error: updateError } = await adminClient.auth.admin.updateUserById(userId, {
+      password
+    })
+
+    if (updateError) {
+      // Map standard Supabase errors
+      if (updateError.message.toLowerCase().includes('user not found')) {
+        return { error: 'Pengguna tidak ditemukan.' }
+      }
+      // Hide raw error
+      return { error: 'Reset password gagal. Silakan coba lagi beberapa saat.' }
+    }
+
+    return { success: true }
+  } catch (err: any) {
+    if (err.message?.includes('Unauthorized')) {
+      return { error: 'Anda tidak memiliki izin untuk melakukan tindakan ini.' }
+    }
+    return { error: 'Terjadi kesalahan sistem internal.' }
   }
 }
