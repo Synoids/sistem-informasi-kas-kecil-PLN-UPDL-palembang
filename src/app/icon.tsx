@@ -16,41 +16,15 @@ export default function Icon() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'linear-gradient(to bottom right, #0EA5E9, #0284C7)',
-          borderRadius: '16px',
+          background: '#ffffff',
+          borderRadius: '12px',
         }}
       >
-        <div
-          style={{
-            position: 'absolute',
-            width: '60%',
-            height: '50%',
-            backgroundColor: 'rgba(255, 255, 255, 0.15)',
-            borderRadius: '4px',
-            top: '25%',
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            width: '42%',
-            height: '34%',
-            backgroundColor: 'white',
-            borderRadius: '3px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <div
-            style={{
-              width: '14px',
-              height: '14px',
-              backgroundColor: '#FBBF24',
-              borderRadius: '50%',
-            }}
-          />
-        </div>
+        <svg viewBox="0 0 120 120" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M 90 25 L 45 25 A 35 35 0 0 0 45 95 L 90 95" stroke="#0f172a" strokeWidth="16" strokeLinecap="round" />
+          <circle cx="45" cy="60" r="14" fill="#FBBF24" />
+          <path d="M 105 60 L 70 60" stroke="#0EA5E9" strokeWidth="16" strokeLinecap="round" />
+        </svg>
       </div>
     ),
     { ...size }
