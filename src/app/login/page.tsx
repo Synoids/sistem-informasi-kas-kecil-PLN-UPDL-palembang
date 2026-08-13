@@ -26,7 +26,7 @@ export default async function LoginPage({
         <div className="relative z-10">
           <div className="flex items-center gap-4">
             <div className="flex items-center justify-center drop-shadow-xl">
-              <Image src="/Logo_PLN.png" alt="Logo PLN" width={32} height={44} className="object-contain opacity-80" />
+              <Image src="/Logo_PLN.png" alt="Logo PLN" width={32} height={44} className="object-contain" />
             </div>
             <div className="h-10 w-px bg-slate-700 mx-1"></div>
             <Logo className="w-10 h-10" withText variant="dark" textClassName="text-xl" />
