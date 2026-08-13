@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ProfileAdminView, CashSourceAdminView } from '@/lib/services/master-data.service'
 import { createProfileAction, updateProfileAction, updateUserAccessAction, resetUserPasswordAction } from '@/app/(app)/master/actions'
 import { showToast } from '@/app/components/Toast'
+import { useRouter } from 'next/navigation'
 
 export function UserList({ 
   initialData,
@@ -15,6 +16,7 @@ export function UserList({
   currentUserId: string
 }) {
   const [data, setData] = useState<ProfileAdminView[]>(initialData)
+  const router = useRouter()
   
   // Modals state
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
@@ -77,8 +79,9 @@ export function UserList({
       if (result?.error) {
         showToast(result.error, 'error')
       } else {
-        showToast(editingProfile ? 'Profile berhasil diperbarui.' : 'Profile berhasil ditambahkan.', 'success')
+        showToast(editingProfile ? 'Profile berhasil diupdate.' : 'Profile berhasil ditambahkan.', 'success')
         closeModals()
+        router.refresh()
       }
     } catch (err: any) {
       showToast(err.message || 'Terjadi kesalahan', 'error')
@@ -111,6 +114,7 @@ export function UserList({
       } else {
         showToast('Akses Sumber Dana berhasil diperbarui.', 'success')
         closeModals()
+        router.refresh()
       }
     } catch (err: any) {
       showToast(err.message || 'Terjadi kesalahan', 'error')
@@ -139,6 +143,7 @@ export function UserList({
       } else {
         showToast('Password berhasil direset.', 'success')
         closeModals()
+        router.refresh()
       }
     } catch (err: any) {
       showToast(err.message || 'Terjadi kesalahan', 'error')
@@ -192,9 +197,15 @@ export function UserList({
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-slate-500">{item.id}</td>
                     <td className="px-4 py-3 text-center font-medium">
-                      <span className="bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full text-xs">
-                        {item.accessed_cash_source_ids.length} Akses
-                      </span>
+                      {item.role === 'ADMIN' ? (
+                        <span className="bg-purple-50 text-purple-700 px-2.5 py-0.5 rounded-full text-xs border border-purple-200">
+                          Semua Akses
+                        </span>
+                      ) : (
+                        <span className="bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full text-xs">
+                          {item.accessed_cash_source_ids.length} Akses
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right space-x-3">
                       <button 
@@ -205,12 +216,22 @@ export function UserList({
                       >
                         Edit
                       </button>
-                      <button 
-                        onClick={() => openAccessModal(item)}
-                        className="text-indigo-600 hover:text-indigo-800 transition-colors"
-                      >
-                        Kelola Akses
-                      </button>
+                      {item.role === 'ADMIN' ? (
+                        <button 
+                          disabled
+                          title="Admin memiliki semua akses secara otomatis"
+                          className="text-slate-300 cursor-not-allowed"
+                        >
+                          Kelola Akses
+                        </button>
+                      ) : (
+                        <button 
+                          onClick={() => openAccessModal(item)}
+                          className="text-indigo-600 hover:text-indigo-800 transition-colors"
+                        >
+                          Kelola Akses
+                        </button>
+                      )}
                       <button 
                         onClick={() => openResetPasswordModal(item)}
                         disabled={isSelf}

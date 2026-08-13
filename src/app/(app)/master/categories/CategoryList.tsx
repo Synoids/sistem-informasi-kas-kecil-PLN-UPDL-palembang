@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Database } from '@/lib/types/database.types'
 import { createCategoryAction, updateCategoryAction, toggleCategoryActiveAction } from '@/app/(app)/master/actions'
 import { showToast } from '@/app/components/Toast'
+import { useRouter } from 'next/navigation'
 
 type Category = Database['public']['Tables']['categories']['Row']
 
@@ -12,6 +13,8 @@ export function CategoryList({ initialData }: { initialData: Category[] }) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isPending, setIsPending] = useState(false)
   const [editingItem, setEditingItem] = useState<Category | null>(null)
+
+  const router = useRouter()
   const [filterActive, setFilterActive] = useState<string>('all')
 
   const filteredData = data.filter(item => {
@@ -46,12 +49,8 @@ export function CategoryList({ initialData }: { initialData: Category[] }) {
         showToast(result.error, 'error')
       } else {
         showToast(editingItem ? 'Kategori berhasil diperbarui.' : 'Kategori berhasil ditambahkan.', 'success')
-        // Optimistic UI update could go here, but revalidatePath will refresh the page via server component
-        // For smoother UX without full page reload, we wait for Next.js to re-render the server component
-        // However, since it's a client component wrapping it, we might need a router.refresh() 
-        // if we want to ensure fresh data, or just rely on server action's revalidatePath
-        // Actually, Next.js App Router automatically refreshes the current route on revalidatePath.
         closeModal()
+        router.refresh()
       }
     } catch (err: any) {
       showToast(err.message || 'Terjadi kesalahan', 'error')
@@ -72,6 +71,7 @@ export function CategoryList({ initialData }: { initialData: Category[] }) {
         showToast(result.error, 'error')
       } else {
         showToast(`Kategori berhasil ${item.is_active ? 'dinonaktifkan' : 'diaktifkan'}.`, 'success')
+        router.refresh()
       }
     } catch (err: any) {
       showToast(err.message || 'Terjadi kesalahan', 'error')

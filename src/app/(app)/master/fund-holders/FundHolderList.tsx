@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Database } from '@/lib/types/database.types'
 import { createFundHolderAction, updateFundHolderAction, toggleFundHolderActiveAction } from '@/app/(app)/master/actions'
 import { showToast } from '@/app/components/Toast'
+import { useRouter } from 'next/navigation'
 
 type FundHolder = Database['public']['Tables']['fund_holders']['Row']
 
@@ -12,6 +13,8 @@ export function FundHolderList({ initialData }: { initialData: FundHolder[] }) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isPending, setIsPending] = useState(false)
   const [editingItem, setEditingItem] = useState<FundHolder | null>(null)
+
+  const router = useRouter()
   const [filterActive, setFilterActive] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -56,8 +59,9 @@ export function FundHolderList({ initialData }: { initialData: FundHolder[] }) {
       if (result?.error) {
         showToast(result.error, 'error')
       } else {
-        showToast(editingItem ? 'Pemegang Dana berhasil diperbarui.' : 'Pemegang Dana berhasil ditambahkan.', 'success')
+        showToast(editingItem ? 'Pemegang Dana berhasil diupdate.' : 'Pemegang Dana berhasil ditambahkan.', 'success')
         closeModal()
+        router.refresh()
       }
     } catch (err: any) {
       showToast(err.message || 'Terjadi kesalahan', 'error')
@@ -78,6 +82,7 @@ export function FundHolderList({ initialData }: { initialData: FundHolder[] }) {
         showToast(result.error, 'error')
       } else {
         showToast(`Pemegang Dana berhasil ${item.is_active ? 'dinonaktifkan' : 'diaktifkan'}.`, 'success')
+        router.refresh()
       }
     } catch (err: any) {
       showToast(err.message || 'Terjadi kesalahan', 'error')

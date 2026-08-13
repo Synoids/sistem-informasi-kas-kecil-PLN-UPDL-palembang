@@ -3,6 +3,8 @@ import { getAccessibleCashSources } from '@/lib/services/cash-source.service'
 import { redirect } from 'next/navigation'
 import { AllocationForm } from '@/app/components/AllocationForm'
 
+import { SetBudgetSection } from './components/SetBudgetSection'
+
 function formatRupiah(amount: number): string {
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
@@ -26,14 +28,21 @@ export default async function AlokasiPage() {
 
   // Admin gets all cash sources
   const cashSources = await getAccessibleCashSources()
+  
+  // Find MAIN balance
+  const mainSource = cashSources.find(cs => cs.type === 'MAIN')
+  const mainBalance = mainSource?.balance || 0
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold text-slate-800">Alokasi Dana</h2>
-        <p className="text-sm text-slate-500 mt-0.5">
-          Transfer dana operasional antar sumber dana (Kas Utama ke Pemegang Dana)
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-semibold text-slate-800">Alokasi Dana</h2>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Transfer dana operasional antar sumber dana (Kas Utama ke Pemegang Dana)
+          </p>
+        </div>
+        <SetBudgetSection currentMainBalance={mainBalance} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

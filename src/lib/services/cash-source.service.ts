@@ -48,6 +48,7 @@ export async function getAccessibleCashSources(): Promise<CashSourceBalance[]> {
     .select('*')
     .in('cash_source_id', sourceIds)
     .eq('is_active', true)
+    .neq('type', 'SYSTEM') // SYSTEM is strictly for internal use (pagu), hide from dropdowns/dashboard
     .order('type', { ascending: false }) // MAIN first
     .order('name', { ascending: true })
 

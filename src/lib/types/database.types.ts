@@ -57,7 +57,7 @@ export interface Database {
           id: string
           code: string
           name: string
-          type: 'MAIN' | 'INDIVIDUAL'
+          type: 'MAIN' | 'INDIVIDUAL' | 'SYSTEM'
           fund_holder_id: string | null
           is_active: boolean
         }
@@ -65,7 +65,7 @@ export interface Database {
           id?: string
           code: string
           name: string
-          type: 'MAIN' | 'INDIVIDUAL'
+          type: 'MAIN' | 'INDIVIDUAL' | 'SYSTEM'
           fund_holder_id?: string | null
           is_active?: boolean
         }
@@ -73,7 +73,7 @@ export interface Database {
           id?: string
           code?: string
           name?: string
-          type?: 'MAIN' | 'INDIVIDUAL'
+          type?: 'MAIN' | 'INDIVIDUAL' | 'SYSTEM'
           fund_holder_id?: string | null
           is_active?: boolean
         }

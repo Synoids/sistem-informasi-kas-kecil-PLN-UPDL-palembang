@@ -6,6 +6,7 @@ import { CashSourceAdminView } from '@/lib/services/master-data.service'
 import { Database } from '@/lib/types/database.types'
 import { createCashSourceAction, updateCashSourceAction, toggleCashSourceActiveAction } from '@/app/(app)/master/actions'
 import { showToast } from '@/app/components/Toast'
+import { useRouter } from 'next/navigation'
 
 type FundHolder = Database['public']['Tables']['fund_holders']['Row']
 
@@ -21,8 +22,12 @@ export function CashSourceList({
   const [isPending, setIsPending] = useState(false)
   const [editingItem, setEditingItem] = useState<CashSourceAdminView | null>(null)
   
+  const [formFundHolder, setFormFundHolder] = useState<string>('')
+
+  const router = useRouter()
   const [filterActive, setFilterActive] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [filterType, setFilterType] = useState<'ALL' | 'MAIN' | 'INDIVIDUAL' | 'SYSTEM'>('ALL')
 
   // State untuk form dinamis (Type)
   const [formType, setFormType] = useState<'MAIN' | 'INDIVIDUAL'>('INDIVIDUAL')
@@ -30,6 +35,7 @@ export function CashSourceList({
   const filteredData = data.filter(item => {
     if (filterActive === 'active' && !item.is_active) return false
     if (filterActive === 'inactive' && item.is_active) return false
+    if (filterType !== 'ALL' && item.type !== filterType) return false
     
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
@@ -70,8 +76,9 @@ export function CashSourceList({
       if (result?.error) {
         showToast(result.error, 'error')
       } else {
-        showToast(editingItem ? 'Sumber Dana berhasil diperbarui.' : 'Sumber Dana berhasil ditambahkan.', 'success')
+        showToast(editingItem ? 'Sumber Dana berhasil diupdate.' : 'Sumber Dana berhasil ditambahkan.', 'success')
         closeModal()
+        router.refresh()
       }
     } catch (err: any) {
       showToast(err.message || 'Terjadi kesalahan', 'error')
@@ -92,6 +99,7 @@ export function CashSourceList({
         showToast(result.error, 'error')
       } else {
         showToast(`Sumber Dana berhasil ${item.is_active ? 'dinonaktifkan' : 'diaktifkan'}.`, 'success')
+        router.refresh()
       }
     } catch (err: any) {
       showToast(err.message || 'Terjadi kesalahan', 'error')

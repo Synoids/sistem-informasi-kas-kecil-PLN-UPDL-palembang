@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Database } from '@/lib/types/database.types'
 import { createDivisionAction, updateDivisionAction, toggleDivisionActiveAction } from '@/app/(app)/master/actions'
 import { showToast } from '@/app/components/Toast'
+import { useRouter } from 'next/navigation'
 
 type Division = Database['public']['Tables']['divisions']['Row']
 
@@ -12,6 +13,8 @@ export function DivisionList({ initialData }: { initialData: Division[] }) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isPending, setIsPending] = useState(false)
   const [editingItem, setEditingItem] = useState<Division | null>(null)
+
+  const router = useRouter()
   const [filterActive, setFilterActive] = useState<string>('all')
 
   const filteredData = data.filter(item => {
@@ -45,8 +48,9 @@ export function DivisionList({ initialData }: { initialData: Division[] }) {
       if (result?.error) {
         showToast(result.error, 'error')
       } else {
-        showToast(editingItem ? 'Bidang berhasil diperbarui.' : 'Bidang berhasil ditambahkan.', 'success')
+        showToast(editingItem ? 'Bidang/Divisi berhasil diupdate.' : 'Bidang/Divisi berhasil ditambahkan.', 'success')
         closeModal()
+        router.refresh()
       }
     } catch (err: any) {
       showToast(err.message || 'Terjadi kesalahan', 'error')
@@ -66,7 +70,8 @@ export function DivisionList({ initialData }: { initialData: Division[] }) {
       if (result?.error) {
         showToast(result.error, 'error')
       } else {
-        showToast(`Bidang berhasil ${item.is_active ? 'dinonaktifkan' : 'diaktifkan'}.`, 'success')
+        showToast(`Bidang/Divisi berhasil ${item.is_active ? 'dinonaktifkan' : 'diaktifkan'}.`, 'success')
+        router.refresh()
       }
     } catch (err: any) {
       showToast(err.message || 'Terjadi kesalahan', 'error')

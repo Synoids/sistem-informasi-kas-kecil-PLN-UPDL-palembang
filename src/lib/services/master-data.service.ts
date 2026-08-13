@@ -53,6 +53,8 @@ export async function fetchCashSourcesAdmin(): Promise<CashSourceAdminView[]> {
       *,
       fund_holders ( name )
     `)
+    .neq('type', 'SYSTEM')
+    .neq('code', 'MODAL_AWAL')
     .order('code', { ascending: true })
 
   if (sourcesError) throw new Error('Gagal mengambil data cash sources: ' + sourcesError.message)

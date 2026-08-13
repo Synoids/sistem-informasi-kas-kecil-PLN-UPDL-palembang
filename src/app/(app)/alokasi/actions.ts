@@ -46,3 +46,60 @@ export async function submitAllocationAction(formData: FormData) {
     return { error: errorMsg }
   }
 }
+
+export async function setBudgetCeilingAction(targetAmount: number) {
+  try {
+    const { createClient } = await import('@/lib/supabase/server');
+    const { getCurrentProfile } = await import('@/lib/services/auth.service');
+    
+    const profile = await getCurrentProfile();
+    if (!profile || profile.role !== 'ADMIN') {
+      return { error: 'Anda tidak memiliki hak untuk menetapkan pagu.' };
+    }
+
+    if (typeof targetAmount !== 'number' || isNaN(targetAmount) || targetAmount <= 0) {
+      return { error: 'Nilai pagu harus lebih besar dari Rp0.' };
+    }
+
+    const supabase = await createClient();
+
+    // Call the RPC
+    const today = new Date().toISOString().split('T')[0];
+    const { data, error } = await supabase.rpc('set_budget_ceiling' as any, {
+      p_target_amount: targetAmount,
+      p_date: today
+    } as any);
+
+    if (error) {
+      throw error;
+    }
+
+    // Revalidate paths to update UI
+    revalidatePath('/')
+    revalidatePath('/alokasi')
+    revalidatePath('/alokasi/riwayat')
+    revalidatePath('/rekap')
+
+    return { success: true, data };
+  } catch (error: any) {
+    console.error('Set budget ceiling error:', error);
+    
+    let errorMsg = error.message || 'Terjadi kesalahan saat menetapkan pagu kas.';
+    
+    if (errorMsg.includes('ERR_UNAUTHORIZED')) {
+      errorMsg = 'Anda tidak memiliki hak untuk menetapkan pagu.';
+    } else if (errorMsg.includes('ERR_INVALID_TARGET')) {
+      errorMsg = 'Nilai pagu harus lebih besar dari Rp0.';
+    } else if (errorMsg.includes('ERR_MAIN_NOT_FOUND')) {
+      errorMsg = 'Kas Utama tidak ditemukan.';
+    } else if (errorMsg.includes('ERR_SYSTEM_NOT_FOUND')) {
+      errorMsg = 'Sumber dana eksternal belum tersedia.';
+    } else if (errorMsg.includes('ERR_INSUFFICIENT_FUNDS')) {
+      errorMsg = 'Saldo Kas Utama tidak mencukupi untuk pengembalian dana.';
+    } else if (errorMsg.includes('could not serialize access due to concurrent update')) {
+      errorMsg = 'Saldo Kas Utama berubah saat proses berlangsung. Silakan coba lagi.';
+    }
+
+    return { error: errorMsg };
+  }
+}
