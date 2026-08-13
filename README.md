@@ -37,11 +37,15 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 - **Master Data:** Manage Categories, Divisions, Fund Holders, Cash Sources, and User Access Roles (Admin Only).
 - **Rekap (Monthly Report):** Read-only automated consolidated reporting to track opening and closing periodic balances.
 
+- **Budget Replenishment (Tetapkan Pagu):** Secure RPC-based mechanism to top up Main Cash from central funds without manual allocation entries, avoiding race conditions and ensuring accurate financial boundaries.
+
 ## 6. Login & Admin Setup
 - Users authenticate via Email and Password.
 - Application authorization is strictly enforced by `profiles` (Roles: `ADMIN` or `USER`) and `user_cash_source_access` relations.
 - **Initial Setup:** You must create the first user through the Supabase Dashboard Authentication menu. Afterward, manually set their `role` to `'ADMIN'` inside the `profiles` table to bootstrap system configuration.
 
-## 7. Deployment Notes
+## 7. Deployment & Security Notes
 - This Next.js application is ready to be deployed on platforms like Vercel.
-- The repository is completely stateless on the backend. All critical financial logic and constraints are handled via PostgreSQL Views (`v_cash_source_balances`) and RPCs, ensuring maximum data integrity regardless of the frontend client. 
+- **Database Migrations:** Ensure all files in `supabase/migrations/*` are executed on your production Supabase project in chronological order.
+- **Service Role:** The application operates strictly using the `NEXT_PUBLIC_SUPABASE_ANON_KEY` combined with Supabase Auth and RLS. **DO NOT** add or expose the `SUPABASE_SERVICE_ROLE_KEY` to the client or the environment variables, as the application's architecture does not require it and it poses a critical security risk.
+- The repository is completely stateless on the backend. All critical financial logic and constraints are handled via PostgreSQL Views (`v_cash_source_balances`) and RPCs (`set_budget_ceiling`, `create_transaction`, `create_allocation`), ensuring maximum data integrity regardless of the frontend client. 
