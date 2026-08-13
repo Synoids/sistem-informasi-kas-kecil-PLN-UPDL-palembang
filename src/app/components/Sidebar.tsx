@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { Logo } from '@/app/components/Logo'
 
 type NavItem = {
   label: string
@@ -30,9 +31,8 @@ export function Sidebar({ role, fullName }: { role: 'ADMIN' | 'USER'; fullName: 
 
   return (
     <aside className="hidden md:flex md:flex-col md:w-60 bg-[#1e293b] text-slate-200 min-h-screen">
-      <div className="px-5 py-5 border-b border-slate-700">
-        <h1 className="text-base font-semibold text-white leading-tight">Kas Kecil</h1>
-        <p className="text-xs text-slate-400 mt-0.5">PKU UPDL Palembang</p>
+      <div className="px-5 py-6 border-b border-slate-700/50 flex items-center justify-center">
+        <Logo className="w-10 h-10" withText variant="dark" textClassName="text-sm" />
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1">

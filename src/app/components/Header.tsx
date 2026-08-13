@@ -1,10 +1,11 @@
 import { logout } from '@/app/login/actions'
+import { Logo } from '@/app/components/Logo'
 
 export function Header({ fullName, role }: { fullName: string; role: string }) {
   return (
     <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0">
-      <div className="flex items-center gap-3 md:hidden">
-        <h1 className="text-sm font-semibold text-slate-800">Kas Kecil PKU</h1>
+      <div className="flex items-center md:hidden">
+        <Logo className="w-6 h-6" withText textClassName="text-[10px]" />
       </div>
       <div className="hidden md:block" />
       <div className="flex items-center gap-4">

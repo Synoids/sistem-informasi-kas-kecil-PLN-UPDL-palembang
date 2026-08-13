@@ -3,6 +3,8 @@ import { SubmitButton } from './components/SubmitButton'
 import { AlertCircle } from 'lucide-react'
 import Image from 'next/image'
 
+import { Logo } from '@/app/components/Logo'
+
 export default async function LoginPage({
   searchParams,
 }: {
@@ -22,11 +24,12 @@ export default async function LoginPage({
         <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-cyan-600 rounded-full filter blur-[100px] opacity-30 animate-blob animation-delay-2000 pointer-events-none"></div>
 
         <div className="relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-16 flex items-center justify-center drop-shadow-xl">
-              <Image src="/Logo_PLN.png" alt="Logo PLN" width={48} height={64} className="object-contain" />
+          <div className="flex items-center gap-4">
+            <div className="flex items-center justify-center drop-shadow-xl">
+              <Image src="/Logo_PLN.png" alt="Logo PLN" width={32} height={44} className="object-contain opacity-80" />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-white drop-shadow-sm">Petty Cash Management</h1>
+            <div className="h-10 w-px bg-slate-700 mx-1"></div>
+            <Logo className="w-10 h-10" withText variant="dark" textClassName="text-xl" />
           </div>
         </div>
 
