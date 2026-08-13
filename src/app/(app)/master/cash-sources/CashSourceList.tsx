@@ -30,7 +30,7 @@ export function CashSourceList({
   const [filterType, setFilterType] = useState<'ALL' | 'MAIN' | 'INDIVIDUAL' | 'SYSTEM'>('ALL')
 
   // State untuk form dinamis (Type)
-  const [formType, setFormType] = useState<'MAIN' | 'INDIVIDUAL'>('INDIVIDUAL')
+  const [formType, setFormType] = useState<'MAIN' | 'INDIVIDUAL' | 'SYSTEM'>('INDIVIDUAL')
 
   const filteredData = data.filter(item => {
     if (filterActive === 'active' && !item.is_active) return false

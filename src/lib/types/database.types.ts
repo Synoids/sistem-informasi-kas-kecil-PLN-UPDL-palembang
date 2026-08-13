@@ -275,7 +275,7 @@ export interface Database {
     }
     Enums: {
       user_role: 'ADMIN' | 'USER'
-      cash_source_type: 'MAIN' | 'INDIVIDUAL'
+      cash_source_type: 'MAIN' | 'INDIVIDUAL' | 'SYSTEM'
     }
   }
 }
