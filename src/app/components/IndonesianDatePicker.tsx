@@ -33,6 +33,7 @@ interface IndonesianDatePickerProps {
   required?: boolean
   placeholder?: string
   className?: string
+  disabled?: boolean
 }
 
 export function IndonesianDatePicker({
@@ -44,6 +45,7 @@ export function IndonesianDatePicker({
   required,
   placeholder = 'dd/mm/yyyy',
   className = '',
+  disabled = false,
 }: IndonesianDatePickerProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(
     parseLocalDateString(value !== undefined ? value : defaultValue)
@@ -79,6 +81,7 @@ export function IndonesianDatePicker({
         placeholderText={placeholder}
         className={finalClassName}
         required={required}
+        disabled={disabled}
         autoComplete="off"
         showPopperArrow={false}
         popperPlacement="bottom-start"

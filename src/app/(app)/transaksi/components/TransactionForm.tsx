@@ -4,6 +4,9 @@ import { useState, useRef } from 'react'
 import { submitTransaction, editTransaction } from '../actions'
 import { showToast } from '@/app/components/Toast'
 import { IndonesianDatePicker } from '@/app/components/IndonesianDatePicker'
+import { ReceiptUploader } from '@/app/components/ReceiptUploader'
+import { SuccessModal } from '@/app/components/SuccessModal'
+import { Spinner } from '@/app/components/Spinner'
 
 interface CashSource {
   cash_source_id: string
@@ -34,7 +37,11 @@ interface TransactionFormProps {
     description?: string
     receipt_date?: string
     handover_date?: string
+    receipt_status?: string
+    receipt_file_path?: string
   }
+  userRole?: string
+  periodStatus?: 'OPEN' | 'CLOSED'
   onSuccess?: () => void
 }
 
@@ -51,10 +58,15 @@ export function TransactionForm({
   divisions,
   mode = 'create',
   defaultValues = {},
+  userRole = 'USER',
+  periodStatus = 'OPEN',
   onSuccess,
 }: TransactionFormProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState('')
+  
+  const isFinancialLocked = mode === 'edit' && (userRole !== 'ADMIN' || periodStatus === 'CLOSED')
   const [amountStr, setAmountStr] = useState<string>(
     defaultValues.amount ? Number(defaultValues.amount).toLocaleString('id-ID') : ''
   )
@@ -72,40 +84,34 @@ export function TransactionForm({
   }
 
   async function handleSubmit(formData: FormData) {
-    setLoading(true)
-    setError(null)
-
     // Basic client-side validation
     const amount = Number(formData.get('amount'))
     if (!amount || amount <= 0) {
       setError('Nominal harus lebih dari 0.')
-      setLoading(false)
       return
     }
     if (!(formData.get('date') as string)?.trim()) {
       setError('Tanggal transaksi wajib diisi.')
-      setLoading(false)
       return
     }
 
+    setLoading(true)
+    setError(null)
+    
     try {
       const result = mode === 'edit'
         ? await editTransaction(formData)
         : await submitTransaction(formData)
 
       if (result.success) {
-        showToast(
-          mode === 'edit'
-            ? 'Transaksi berhasil diperbarui.'
-            : 'Transaksi berhasil disimpan.',
-          'success'
-        )
+        setSuccessMessage(mode === 'edit' ? 'Transaksi berhasil diperbarui.' : 'Transaksi berhasil disimpan.')
         if (mode === 'create') {
           formRef.current?.reset()
+          setAmountStr('')
         }
         onSuccess?.()
       } else {
-        setError(result.error.message)
+        setError(result.error?.message || 'Gagal menyimpan transaksi.')
       }
     } catch {
       setError('Terjadi kesalahan sistem.')
@@ -116,6 +122,12 @@ export function TransactionForm({
 
   return (
     <form ref={formRef} action={handleSubmit} className="space-y-8 max-w-2xl">
+      <SuccessModal 
+        isOpen={!!successMessage} 
+        message={successMessage} 
+        onClose={() => setSuccessMessage('')} 
+      />
+
       {mode === 'edit' && defaultValues.transaction_id && (
         <input type="hidden" name="transaction_id" value={defaultValues.transaction_id} />
       )}
@@ -133,7 +145,9 @@ export function TransactionForm({
             name="date"
             required
             defaultValue={defaultValues.date ?? today}
+            disabled={isFinancialLocked}
           />
+          {isFinancialLocked && <input type="hidden" name="date" value={defaultValues.date ?? today} />}
         </div>
 
         <div>
@@ -145,7 +159,8 @@ export function TransactionForm({
             name="cash_source_id"
             required
             defaultValue={defaultValues.cash_source_id ?? ''}
-            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+            disabled={isFinancialLocked}
+            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white disabled:bg-slate-100 disabled:text-slate-500"
           >
             <option value="">Pilih sumber dana</option>
             {cashSources.map((cs) => (
@@ -154,6 +169,7 @@ export function TransactionForm({
               </option>
             ))}
           </select>
+          {isFinancialLocked && <input type="hidden" name="cash_source_id" value={defaultValues.cash_source_id} />}
         </div>
 
         <div>
@@ -173,8 +189,9 @@ export function TransactionForm({
               autoComplete="off"
               value={amountStr}
               onChange={handleAmountChange}
+              disabled={isFinancialLocked}
               placeholder=""
-              className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-semibold text-lg"
+              className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-semibold text-lg disabled:bg-slate-100 disabled:text-slate-500"
             />
           </div>
         </div>
@@ -193,13 +210,15 @@ export function TransactionForm({
             name="category_id"
             required
             defaultValue={defaultValues.category_id ?? ''}
-            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+            disabled={isFinancialLocked}
+            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white disabled:bg-slate-100 disabled:text-slate-500"
           >
             <option value="">Pilih kategori</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
+          {isFinancialLocked && <input type="hidden" name="category_id" value={defaultValues.category_id} />}
         </div>
 
         <div>
@@ -211,13 +230,15 @@ export function TransactionForm({
             name="division_id"
             required
             defaultValue={defaultValues.division_id ?? ''}
-            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+            disabled={isFinancialLocked}
+            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white disabled:bg-slate-100 disabled:text-slate-500"
           >
             <option value="">Pilih bidang</option>
             {divisions.map((d) => (
               <option key={d.id} value={d.id}>{d.name}</option>
             ))}
           </select>
+          {isFinancialLocked && <input type="hidden" name="division_id" value={defaultValues.division_id} />}
         </div>
 
         <div>
@@ -230,8 +251,9 @@ export function TransactionForm({
             type="text"
             autoComplete="off"
             defaultValue={defaultValues.recipient_name ?? ''}
+            readOnly={isFinancialLocked}
             placeholder="Isi jika ada (opsional)"
-            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none read-only:bg-slate-100 read-only:text-slate-500"
           />
         </div>
 
@@ -244,8 +266,9 @@ export function TransactionForm({
             name="description"
             rows={2}
             defaultValue={defaultValues.description ?? ''}
+            readOnly={isFinancialLocked}
             placeholder="opsional"
-            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-y"
+            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-y read-only:bg-slate-100 read-only:text-slate-500"
           />
         </div>
 
@@ -258,8 +281,9 @@ export function TransactionForm({
             name="vehicle_number"
             type="text"
             defaultValue={defaultValues.vehicle_number ?? ''}
+            readOnly={isFinancialLocked}
             placeholder="opsional (khusus kategori BBM/Toll)"
-            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none read-only:bg-slate-100 read-only:text-slate-500"
           />
         </div>
       </div>
@@ -268,29 +292,49 @@ export function TransactionForm({
       <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 space-y-5">
         <h3 className="font-semibold text-slate-800 border-b border-slate-200 pb-2">3. Administrasi Kuitansi</h3>
         
+        {mode === 'edit' && defaultValues.receipt_file_path && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <p className="text-sm text-blue-800">
+              <span className="font-semibold">Kuitansi Tersimpan:</span> {' '}
+              <a href={`/api/storage/receipts/${defaultValues.receipt_file_path}`} target="_blank" rel="noopener noreferrer" className="underline text-blue-600 hover:text-blue-800">
+                Lihat File
+              </a>
+            </p>
+            <input type="hidden" name="existing_receipt_path" value={defaultValues.receipt_file_path} />
+            <input type="hidden" name="receipt_status" value={defaultValues.receipt_status || 'SUDAH ADA'} />
+          </div>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label htmlFor="receipt_date" className="block text-sm font-medium text-slate-700 mb-1">
-              Tanggal Kuitansi <span className="text-red-500">*</span>
+              Tanggal Kuitansi (opsional)
             </label>
             <IndonesianDatePicker
               id="receipt_date"
               name="receipt_date"
-              required
-              defaultValue={defaultValues.receipt_date ?? today}
+              defaultValue={defaultValues.receipt_date ?? ''}
+              placeholder="Kosongkan jika belum ada"
             />
           </div>
 
           <div>
             <label htmlFor="handover_date" className="block text-sm font-medium text-slate-700 mb-1">
-              Tanggal Penyerahan <span className="text-red-500">*</span>
+              Tanggal Penyerahan (opsional)
             </label>
             <IndonesianDatePicker
               id="handover_date"
               name="handover_date"
-              required
-              defaultValue={defaultValues.handover_date ?? today}
+              defaultValue={defaultValues.handover_date ?? ''}
+              placeholder="Kosongkan jika belum ada"
             />
+          </div>
+
+          <div className="sm:col-span-2">
+            <label htmlFor="receipt_file" className="block text-sm font-medium text-slate-700 mb-1">
+              Upload Kuitansi Fisik {mode === 'edit' && defaultValues.receipt_file_path && '(Opsional, untuk mengganti)'}
+            </label>
+            <ReceiptUploader name="receipt_file" id="receipt_file" />
           </div>
         </div>
       </div>
@@ -305,10 +349,10 @@ export function TransactionForm({
         <button
           type="submit"
           disabled={loading}
-          className="px-5 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-5 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 transition-colors flex items-center justify-center min-w-[160px]"
         >
           {loading
-            ? 'Menyimpan...'
+            ? <><Spinner className="mr-2" /> Menyimpan...</>
             : mode === 'edit'
               ? 'Perbarui Transaksi'
               : 'Simpan Transaksi'}

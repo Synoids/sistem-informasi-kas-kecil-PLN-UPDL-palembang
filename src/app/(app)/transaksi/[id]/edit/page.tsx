@@ -14,11 +14,6 @@ export default async function EditTransaksiPage({
   const profile = await getCurrentProfile()
   if (!profile) redirect('/login')
 
-  // Only ADMIN can edit
-  if (profile.role !== 'ADMIN') {
-    redirect('/')
-  }
-
   const { id } = await params
 
   const transaction = await fetchTransactionById(id)
@@ -68,11 +63,24 @@ export default async function EditTransaksiPage({
       </div>
 
       <div className="bg-white rounded-lg border border-slate-200 p-6">
+        {transaction.period_status === 'CLOSED' && (
+          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
+            <span className="text-amber-500 mt-0.5">🔒</span>
+            <div>
+              <h3 className="text-sm font-semibold text-amber-800">Periode Telah Ditutup</h3>
+              <p className="text-xs text-amber-700 mt-1">
+                Data finansial transaksi ini tidak dapat diubah lagi. Anda hanya diizinkan untuk mengupload atau memperbarui kuitansi.
+              </p>
+            </div>
+          </div>
+        )}
         <TransactionForm
           cashSources={cashSources}
           categories={masterData.categories}
           divisions={masterData.divisions}
           mode="edit"
+          userRole={profile.role}
+          periodStatus={transaction.period_status}
           defaultValues={{
             transaction_id: transaction.id,
             date: transaction.date,
@@ -83,8 +91,10 @@ export default async function EditTransaksiPage({
             division_id: transaction.division_id,
             amount: transaction.amount,
             description: transaction.description ?? '',
-            receipt_date: transaction.receipt_date,
-            handover_date: transaction.handover_date,
+            receipt_date: transaction.receipt_date ?? '',
+            handover_date: transaction.handover_date ?? '',
+            receipt_status: transaction.receipt_status,
+            receipt_file_path: transaction.receipt_file_path ?? '',
           }}
         />
       </div>

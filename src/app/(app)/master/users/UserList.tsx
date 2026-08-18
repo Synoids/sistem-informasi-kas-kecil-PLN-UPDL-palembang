@@ -1,10 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { ProfileAdminView, CashSourceAdminView } from '@/lib/services/master-data.service'
 import { createProfileAction, updateProfileAction, updateUserAccessAction, resetUserPasswordAction } from '@/app/(app)/master/actions'
 import { showToast } from '@/app/components/Toast'
-import { useRouter } from 'next/navigation'
+import { SuccessModal } from '@/app/components/SuccessModal'
+import { Spinner } from '@/app/components/Spinner'
 
 export function UserList({ 
   initialData,
@@ -22,6 +24,8 @@ export function UserList({
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
   const [isAccessModalOpen, setIsAccessModalOpen] = useState(false)
   const [isResetPasswordModalOpen, setIsResetPasswordModalOpen] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
+  const [error, setError] = useState<string | null>(null)
   
   const [isPending, setIsPending] = useState(false)
   const [editingProfile, setEditingProfile] = useState<ProfileAdminView | null>(null)
@@ -64,6 +68,7 @@ export function UserList({
     setIsProfileModalOpen(false)
     setIsAccessModalOpen(false)
     setIsResetPasswordModalOpen(false)
+    setError(null)
     setEditingProfile(null)
     setManagingAccessUser(null)
     setResetPasswordTarget(null)
@@ -71,20 +76,22 @@ export function UserList({
 
   async function handleProfileSubmit(formData: FormData) {
     setIsPending(true)
+    setError(null)
+    
     try {
       const result = editingProfile 
         ? await updateProfileAction(editingProfile.id, formData)
         : await createProfileAction(formData)
         
       if (result?.error) {
-        showToast(result.error, 'error')
+        setError(result.error)
       } else {
-        showToast(editingProfile ? 'Profile berhasil diupdate.' : 'Profile berhasil ditambahkan.', 'success')
+        setSuccessMessage(editingProfile ? 'Profile berhasil diupdate.' : 'Profile berhasil ditambahkan.')
         closeModals()
         router.refresh()
       }
     } catch (err: any) {
-      showToast(err.message || 'Terjadi kesalahan', 'error')
+      setError(err.message || 'Terjadi kesalahan')
     } finally {
       setIsPending(false)
     }
@@ -93,31 +100,23 @@ export function UserList({
   async function handleAccessSubmit() {
     if (!managingAccessUser) return
 
-    const originalSet = new Set(managingAccessUser.accessed_cash_source_ids)
     const currentArray = Array.from(selectedAccess)
     
-    // Cek adakah akses yang dicabut
-    const revoked = managingAccessUser.accessed_cash_source_ids.some(id => !selectedAccess.has(id))
-
-    if (revoked) {
-      if (!window.confirm("Peringatan:\nMencabut akses dapat membuat pengguna tidak lagi dapat melihat histori transaksi dari sumber dana tersebut.\n\nLanjutkan?")) {
-        return
-      }
-    }
-
     setIsPending(true)
+    setError(null)
+    
     try {
       const result = await updateUserAccessAction(managingAccessUser.id, currentArray)
       
       if (result?.error) {
-        showToast(result.error, 'error')
+        setError(result.error)
       } else {
-        showToast('Akses Sumber Dana berhasil diperbarui.', 'success')
+        setSuccessMessage('Akses Sumber Dana berhasil diperbarui.')
         closeModals()
         router.refresh()
       }
     } catch (err: any) {
-      showToast(err.message || 'Terjadi kesalahan', 'error')
+      setError(err.message || 'Terjadi kesalahan')
     } finally {
       setIsPending(false)
     }
@@ -136,17 +135,19 @@ export function UserList({
   async function handleResetPasswordSubmit(formData: FormData) {
     if (!resetPasswordTarget) return
     setIsPending(true)
+    setError(null)
+    
     try {
       const result = await resetUserPasswordAction(resetPasswordTarget.id, formData)
       if (result?.error) {
-        showToast(result.error, 'error')
+        setError(result.error)
       } else {
-        showToast('Password berhasil direset.', 'success')
+        setSuccessMessage('Password berhasil direset.')
         closeModals()
         router.refresh()
       }
     } catch (err: any) {
-      showToast(err.message || 'Terjadi kesalahan', 'error')
+      setError(err.message || 'Terjadi kesalahan')
     } finally {
       setIsPending(false)
     }
@@ -154,6 +155,12 @@ export function UserList({
 
   return (
     <div className="space-y-4">
+      <SuccessModal 
+        isOpen={!!successMessage} 
+        message={successMessage} 
+        onClose={() => setSuccessMessage('')} 
+      />
+
       <div className="flex justify-end">
         <button 
           onClick={openCreateProfileModal}
@@ -212,25 +219,13 @@ export function UserList({
                         onClick={() => openEditProfileModal(item)}
                         disabled={isSelf}
                         className={`transition-colors ${isSelf ? 'text-slate-300 cursor-not-allowed' : 'text-blue-600 hover:text-blue-800'}`}
-                        title={isSelf ? "Anda tidak dapat mengedit profil sendiri" : "Edit Profile"}
                       >
                         Edit
                       </button>
                       {item.role === 'ADMIN' ? (
-                        <button 
-                          disabled
-                          title="Admin memiliki semua akses secara otomatis"
-                          className="text-slate-300 cursor-not-allowed"
-                        >
-                          Kelola Akses
-                        </button>
+                        <button disabled className="text-slate-300 cursor-not-allowed">Kelola Akses</button>
                       ) : (
-                        <button 
-                          onClick={() => openAccessModal(item)}
-                          className="text-indigo-600 hover:text-indigo-800 transition-colors"
-                        >
-                          Kelola Akses
-                        </button>
+                        <button onClick={() => openAccessModal(item)} className="text-indigo-600 hover:text-indigo-800">Kelola Akses</button>
                       )}
                       <button 
                         onClick={() => openResetPasswordModal(item)}
@@ -248,143 +243,56 @@ export function UserList({
         </table>
       </div>
 
-      {/* PROFILE MODAL */}
       {isProfileModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center shrink-0">
-              <h3 className="text-lg font-semibold text-slate-800">
-                {editingProfile ? 'Edit Profile' : 'Tambah Profile'}
-              </h3>
-              <button onClick={closeModals} className="text-slate-400 hover:text-slate-600">
-                ✕
-              </button>
+              <h3 className="text-lg font-semibold text-slate-800">{editingProfile ? 'Edit Profile' : 'Tambah Profile'}</h3>
+              <button onClick={closeModals} className="text-slate-400 hover:text-slate-600">✕</button>
             </div>
+            
+            {error && <div className="mx-6 mt-4 p-3 bg-red-50 text-red-600 rounded-md text-sm border border-red-100">{error}</div>}
             
             <form action={handleProfileSubmit} className="flex flex-col flex-1 overflow-hidden">
               <div className="p-6 overflow-y-auto space-y-4">
-                {/* Hanya tampilkan UID saat Edit mode */}
                 {editingProfile && (
                   <div>
-                    <label htmlFor="id" className="block text-sm font-medium text-slate-700 mb-1">
-                      User ID (UID)
-                    </label>
-                    <input
-                      type="text"
-                      id="id"
-                      name="id"
-                      readOnly
-                      defaultValue={editingProfile.id}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-md outline-none text-sm font-mono bg-slate-100 text-slate-500 cursor-not-allowed"
-                    />
+                    <label htmlFor="id" className="block text-sm font-medium text-slate-700 mb-1">User ID (UID)</label>
+                    <input type="text" id="id" name="id" readOnly defaultValue={editingProfile.id} className="w-full px-3 py-2 border border-slate-300 rounded-md bg-slate-100 text-slate-500 cursor-not-allowed text-sm" />
                   </div>
                 )}
                 
                 <div>
-                  <label htmlFor="full_name" className="block text-sm font-medium text-slate-700 mb-1">
-                    Nama Lengkap <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    id="full_name"
-                    name="full_name"
-                    required
-                    defaultValue={editingProfile?.full_name || ''}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                  />
+                  <label htmlFor="full_name" className="block text-sm font-medium text-slate-700 mb-1">Nama Lengkap *</label>
+                  <input type="text" id="full_name" name="full_name" required defaultValue={editingProfile?.full_name || ''} className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 text-sm" />
                 </div>
 
                 {!editingProfile && (
                   <>
                     <div>
-                      <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1">
-                        Alamat Email <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        required
-                        className="w-full px-3 py-2 border border-slate-300 rounded-md outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                        placeholder="nama@updl.pln.co.id"
-                      />
+                      <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1">Alamat Email *</label>
+                      <input type="email" id="email" name="email" required className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 text-sm" />
                     </div>
                     <div>
-                      <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1">
-                        Kata Sandi Awal <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        id="password"
-                        name="password"
-                        required
-                        minLength={6}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-md outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                        placeholder="Minimal 6 karakter"
-                      />
-                      <p className="text-xs text-amber-600 mt-1.5 font-medium bg-amber-50 p-2 rounded border border-amber-100">
-                        ⚠ Jangan gunakan kata sandi yang sama dengan akun penting lainnya. Sampaikan kata sandi awal ini kepada pegawai secara aman.
-                      </p>
+                      <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1">Kata Sandi Awal *</label>
+                      <input type="text" id="password" name="password" required minLength={6} className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 text-sm" />
                     </div>
                   </>
                 )}
 
                 <div>
-                  <label htmlFor="role" className="block text-sm font-medium text-slate-700 mb-1">
-                    Role <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    id="role"
-                    name="role"
-                    required
-                    defaultValue={editingProfile?.role || 'USER'}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
-                  >
+                  <label htmlFor="role" className="block text-sm font-medium text-slate-700 mb-1">Role *</label>
+                  <select id="role" name="role" required defaultValue={editingProfile?.role || 'USER'} className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 text-sm bg-white">
                     <option value="USER">USER</option>
                     <option value="ADMIN">ADMIN</option>
                   </select>
                 </div>
-
-                {!editingProfile && (
-                  <div className="pt-2 border-t border-slate-100 mt-4">
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Akses Sumber Dana Awal (Opsional)
-                    </label>
-                    <div className="max-h-40 overflow-y-auto space-y-2 border border-slate-200 rounded-md p-2 bg-slate-50">
-                      {cashSources.filter(cs => cs.is_active).length === 0 ? (
-                        <p className="text-xs text-slate-500 italic">Belum ada Sumber Dana aktif.</p>
-                      ) : (
-                        cashSources.filter(cs => cs.is_active).map(cs => (
-                          <label key={cs.id} className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer p-1 hover:bg-slate-100 rounded">
-                            <input 
-                              type="checkbox" 
-                              name="cash_source_ids" 
-                              value={cs.id} 
-                              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" 
-                            />
-                            {cs.name} <span className="text-xs text-slate-400 font-mono">({cs.code})</span>
-                          </label>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
               
-              <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 shrink-0 bg-slate-50">
-                <button
-                  type="button"
-                  onClick={closeModals}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                >
-                  {isPending ? 'Menyimpan...' : 'Simpan'}
+              <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-2 shrink-0 bg-slate-50">
+                <button type="button" onClick={closeModals} disabled={isPending} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50">Batal</button>
+                <button type="submit" disabled={isPending} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center min-w-[120px]">
+                  {isPending ? <><Spinner className="mr-2" /> Menyimpan...</> : 'Simpan'}
                 </button>
               </div>
             </form>
@@ -392,143 +300,50 @@ export function UserList({
         </div>
       )}
 
-      {/* ACCESS MODAL */}
       {isAccessModalOpen && managingAccessUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-lg w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center shrink-0">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-800">Kelola Akses Sumber Dana</h3>
-                <p className="text-sm text-slate-500 mt-0.5">User: <span className="font-medium text-slate-700">{managingAccessUser.full_name}</span></p>
-              </div>
-              <button onClick={closeModals} className="text-slate-400 hover:text-slate-600">
-                ✕
-              </button>
+              <h3 className="text-lg font-semibold text-slate-800">Kelola Akses</h3>
+              <button onClick={closeModals} className="text-slate-400 hover:text-slate-600">✕</button>
             </div>
             
             <div className="p-6 overflow-y-auto flex-1">
-              <div className="space-y-3">
-                {cashSources.length === 0 ? (
-                  <p className="text-sm text-slate-500 italic text-center py-4">Belum ada satupun Sumber Dana di sistem.</p>
-                ) : (
-                  cashSources.map(cs => {
-                    const isChecked = selectedAccess.has(cs.id)
-                    return (
-                      <label 
-                        key={cs.id}
-                        className={`flex items-center gap-3 p-3 rounded-lg border transition-colors cursor-pointer ${isChecked ? 'bg-blue-50/50 border-blue-200' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
-                      >
-                        <input 
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => toggleAccess(cs.id)}
-                          className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 shrink-0"
-                        />
-                        <div className="flex flex-col flex-1">
-                          <span className="text-sm font-medium text-slate-800">
-                            {cs.name} 
-                            {!cs.is_active && (
-                              <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600 uppercase">
-                                Nonaktif
-                              </span>
-                            )}
-                          </span>
-                          <span className="text-xs text-slate-500 font-mono mt-0.5">{cs.code}</span>
-                        </div>
-                      </label>
-                    )
-                  })
-                )}
-              </div>
+              {cashSources.map(cs => (
+                <label key={cs.id} className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 mb-2 cursor-pointer hover:bg-slate-50">
+                  <input type="checkbox" checked={selectedAccess.has(cs.id)} onChange={() => toggleAccess(cs.id)} className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm">{cs.name}</span>
+                </label>
+              ))}
             </div>
             
-            <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 shrink-0 bg-slate-50">
-              <button
-                type="button"
-                onClick={closeModals}
-                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleAccessSubmit}
-                disabled={isPending}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-              >
-                {isPending ? 'Menyimpan...' : 'Simpan Akses'}
+            <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-2 shrink-0 bg-slate-50">
+              <button type="button" onClick={closeModals} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50">Batal</button>
+              <button type="button" onClick={handleAccessSubmit} disabled={isPending} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center min-w-[120px]">
+                {isPending ? <><Spinner className="mr-2" /> Menyimpan...</> : 'Simpan Akses'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* RESET PASSWORD MODAL */}
       {isResetPasswordModalOpen && resetPasswordTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col">
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center shrink-0">
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
               <h3 className="text-lg font-semibold text-rose-700">Reset Password</h3>
-              <button onClick={closeModals} className="text-slate-400 hover:text-slate-600">
-                ✕
-              </button>
+              <button onClick={closeModals} className="text-slate-400 hover:text-slate-600">✕</button>
             </div>
-            
-            <form action={handleResetPasswordSubmit} className="flex flex-col flex-1 overflow-hidden">
-              <div className="p-6 overflow-y-auto space-y-4">
-                <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 space-y-1">
-                  <p className="text-sm text-slate-500">User:</p>
-                  <p className="font-semibold text-slate-800">{resetPasswordTarget.full_name}</p>
-                </div>
-
-                <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1">
-                    Password Sementara Baru <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    required
-                    minLength={6}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 text-sm"
-                    placeholder="Minimal 6 karakter"
-                  />
-                  <p className="text-xs text-amber-600 mt-2 font-medium bg-amber-50 p-2 rounded border border-amber-100">
-                    ⚠ Gunakan password sementara yang cukup aman dan sampaikan kepada pengguna secara langsung. Pengguna disarankan menggantinya setelah berhasil login.
-                  </p>
-                </div>
-
-                <div>
-                  <label htmlFor="confirm_password" className="block text-sm font-medium text-slate-700 mb-1">
-                    Konfirmasi Password <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="password"
-                    id="confirm_password"
-                    name="confirm_password"
-                    required
-                    minLength={6}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 text-sm"
-                    placeholder="Ulangi password"
-                  />
-                </div>
+            {error && <div className="mx-6 mt-4 p-3 bg-red-50 text-red-600 rounded-md text-sm border border-red-100">{error}</div>}
+            <form action={handleResetPasswordSubmit} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700">Password Baru *</label>
+                <input type="password" name="password" required minLength={6} className="w-full px-3 py-2 border border-slate-300 rounded-md mt-1 text-sm" />
               </div>
-              
-              <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 shrink-0 bg-slate-50">
-                <button
-                  type="button"
-                  onClick={closeModals}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-500"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className="px-4 py-2 text-sm font-medium text-white bg-rose-600 rounded-md hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 disabled:opacity-50"
-                >
-                  {isPending ? 'Menyimpan...' : 'Reset Password'}
+              <div className="pt-4 flex justify-end gap-2">
+                <button type="button" onClick={closeModals} className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200">Batal</button>
+                <button type="submit" disabled={isPending} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50 flex items-center justify-center min-w-[150px]">
+                  {isPending ? <><Spinner className="mr-2" /> Mereset...</> : 'Reset Password'}
                 </button>
               </div>
             </form>

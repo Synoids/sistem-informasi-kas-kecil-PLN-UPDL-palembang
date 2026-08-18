@@ -5,6 +5,8 @@ import { Database } from '@/lib/types/database.types'
 import { createDivisionAction, updateDivisionAction, toggleDivisionActiveAction } from '@/app/(app)/master/actions'
 import { showToast } from '@/app/components/Toast'
 import { useRouter } from 'next/navigation'
+import { SuccessModal } from '@/app/components/SuccessModal'
+import { Spinner } from '@/app/components/Spinner'
 
 type Division = Database['public']['Tables']['divisions']['Row']
 
@@ -13,6 +15,8 @@ export function DivisionList({ initialData }: { initialData: Division[] }) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isPending, setIsPending] = useState(false)
   const [editingItem, setEditingItem] = useState<Division | null>(null)
+  const [successMessage, setSuccessMessage] = useState('')
+  const [error, setError] = useState<string | null>(null)
 
   const router = useRouter()
   const [filterActive, setFilterActive] = useState<string>('all')
@@ -40,20 +44,21 @@ export function DivisionList({ initialData }: { initialData: Division[] }) {
 
   async function handleAction(formData: FormData) {
     setIsPending(true)
+    setError(null)
     try {
       const result = editingItem 
         ? await updateDivisionAction(editingItem.id, formData)
         : await createDivisionAction(formData)
         
       if (result?.error) {
-        showToast(result.error, 'error')
+        setError(result.error)
       } else {
-        showToast(editingItem ? 'Bidang/Divisi berhasil diupdate.' : 'Bidang/Divisi berhasil ditambahkan.', 'success')
+        setSuccessMessage(editingItem ? 'Bidang/Divisi berhasil diupdate.' : 'Bidang/Divisi berhasil ditambahkan.')
         closeModal()
         router.refresh()
       }
     } catch (err: any) {
-      showToast(err.message || 'Terjadi kesalahan', 'error')
+      setError(err.message || 'Terjadi kesalahan')
     } finally {
       setIsPending(false)
     }
@@ -70,7 +75,7 @@ export function DivisionList({ initialData }: { initialData: Division[] }) {
       if (result?.error) {
         showToast(result.error, 'error')
       } else {
-        showToast(`Bidang/Divisi berhasil ${item.is_active ? 'dinonaktifkan' : 'diaktifkan'}.`, 'success')
+        setSuccessMessage(`Bidang/Divisi berhasil ${item.is_active ? 'dinonaktifkan' : 'diaktifkan'}.`)
         router.refresh()
       }
     } catch (err: any) {
@@ -82,6 +87,12 @@ export function DivisionList({ initialData }: { initialData: Division[] }) {
 
   return (
     <div className="space-y-4">
+      <SuccessModal 
+        isOpen={!!successMessage} 
+        message={successMessage} 
+        onClose={() => setSuccessMessage('')} 
+      />
+
       <div className="flex justify-between items-center">
         <select 
           value={filterActive}
@@ -165,6 +176,12 @@ export function DivisionList({ initialData }: { initialData: Division[] }) {
               </button>
             </div>
             
+            {error && (
+              <div className="mx-6 mt-4 p-3 bg-red-50 text-red-600 rounded-md text-sm border border-red-100">
+                {error}
+              </div>
+            )}
+            
             <form action={handleAction} className="p-6">
               <div className="space-y-4">
                 <div>
@@ -187,16 +204,17 @@ export function DivisionList({ initialData }: { initialData: Division[] }) {
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={isPending}
+                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={isPending}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center min-w-[120px]"
                 >
-                  {isPending ? 'Menyimpan...' : 'Simpan'}
+                  {isPending ? <><Spinner className="mr-2" /> Menyimpan...</> : 'Simpan'}
                 </button>
               </div>
             </form>

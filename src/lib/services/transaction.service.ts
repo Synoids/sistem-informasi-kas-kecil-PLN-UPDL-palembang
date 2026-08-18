@@ -9,13 +9,15 @@ export type TransactionWithDetails = TransactionRow & {
   category_name: string
   division_name: string
   created_by_name: string
+  period_status?: 'OPEN' | 'CLOSED'
 }
 
 interface FetchTransactionsOptions {
+  periodId?: string
   cashSourceId?: string
   categoryId?: string
-  dateFrom?: string
-  dateTo?: string
+  receiptStatus?: string
+  search?: string
   limit?: number
   offset?: number
 }
@@ -24,7 +26,7 @@ export async function fetchTransactions(
   options: FetchTransactionsOptions = {}
 ): Promise<{ data: TransactionWithDetails[]; count: number }> {
   const supabase = await createClient()
-  const { cashSourceId, categoryId, dateFrom, dateTo, limit = 25, offset = 0 } = options
+  const { periodId, cashSourceId, categoryId, receiptStatus, search, limit = 25, offset = 0 } = options
 
   // Build query with joins via foreign key relations
   let query = supabase
@@ -34,20 +36,24 @@ export async function fetchTransactions(
       cash_sources!inner ( name, code ),
       categories!inner ( name ),
       divisions!inner ( name ),
-      profiles!transactions_created_by_fkey ( full_name )
+      profiles!transactions_created_by_fkey ( full_name ),
+      accounting_periods!inner ( status )
     `, { count: 'exact' })
 
+  if (periodId) {
+    query = query.eq('period_id', periodId)
+  }
   if (cashSourceId) {
     query = query.eq('cash_source_id', cashSourceId)
   }
   if (categoryId) {
     query = query.eq('category_id', categoryId)
   }
-  if (dateFrom) {
-    query = query.gte('date', dateFrom)
+  if (receiptStatus) {
+    query = query.eq('receipt_status', receiptStatus)
   }
-  if (dateTo) {
-    query = query.lte('date', dateTo)
+  if (search) {
+    query = query.or(`recipient_name.ilike.%${search}%,description.ilike.%${search}%`)
   }
 
   query = query
@@ -65,6 +71,7 @@ export async function fetchTransactions(
   // Flatten the joined data
   const flattened: TransactionWithDetails[] = data.map((row: any) => ({
     id: row.id,
+    period_id: row.period_id,
     date: row.date,
     cash_source_id: row.cash_source_id,
     recipient_name: row.recipient_name,
@@ -75,6 +82,8 @@ export async function fetchTransactions(
     description: row.description,
     receipt_date: row.receipt_date,
     handover_date: row.handover_date,
+    receipt_status: row.receipt_status,
+    receipt_file_path: row.receipt_file_path,
     created_by: row.created_by,
     created_at: row.created_at,
     updated_by: row.updated_by,
@@ -84,6 +93,7 @@ export async function fetchTransactions(
     category_name: row.categories?.name ?? '',
     division_name: row.divisions?.name ?? '',
     created_by_name: row.profiles?.full_name ?? '',
+    period_status: row.accounting_periods?.status,
   }))
 
   return { data: flattened, count: count ?? 0 }
@@ -101,7 +111,8 @@ export async function fetchTransactionById(
       cash_sources!inner ( name, code ),
       categories!inner ( name ),
       divisions!inner ( name ),
-      profiles!transactions_created_by_fkey ( full_name )
+      profiles!transactions_created_by_fkey ( full_name ),
+      accounting_periods!inner ( status )
     `)
     .eq('id', id)
     .single()
@@ -113,6 +124,7 @@ export async function fetchTransactionById(
   const row: any = data
   return {
     id: row.id,
+    period_id: row.period_id,
     date: row.date,
     cash_source_id: row.cash_source_id,
     recipient_name: row.recipient_name,
@@ -123,6 +135,8 @@ export async function fetchTransactionById(
     description: row.description,
     receipt_date: row.receipt_date,
     handover_date: row.handover_date,
+    receipt_status: row.receipt_status,
+    receipt_file_path: row.receipt_file_path,
     created_by: row.created_by,
     created_at: row.created_at,
     updated_by: row.updated_by,
@@ -132,5 +146,6 @@ export async function fetchTransactionById(
     category_name: row.categories?.name ?? '',
     division_name: row.divisions?.name ?? '',
     created_by_name: row.profiles?.full_name ?? '',
+    period_status: row.accounting_periods?.status,
   }
 }

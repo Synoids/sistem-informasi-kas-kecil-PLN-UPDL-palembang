@@ -2,6 +2,7 @@ import { getCurrentProfile } from '@/lib/services/auth.service'
 import { getAccessibleCashSources } from '@/lib/services/cash-source.service'
 import { getMasterData } from '@/lib/services/dashboard.service'
 import { fetchTransactions } from '@/lib/services/transaction.service'
+import { getActivePeriod, getAllPeriods } from '@/lib/services/period.service'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { TransactionFilters } from './components/TransactionFilters'
@@ -12,7 +13,7 @@ const PAGE_SIZE = 25
 export default async function RiwayatTransaksiPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string; source?: string; category?: string; page?: string }>
+  searchParams: Promise<{ period?: string; source?: string; category?: string; status?: string; search?: string; page?: string }>
 }) {
   const profile = await getCurrentProfile()
   if (!profile) redirect('/login')
@@ -21,15 +22,21 @@ export default async function RiwayatTransaksiPage({
 
   const cashSources = await getAccessibleCashSources()
   const masterData = await getMasterData()
+  const allPeriods = (await getAllPeriods() || []) as any[]
+  const activePeriod = allPeriods.find((p: any) => p.status === 'OPEN')
+
+  // Default period is the active period, or the first one if there are no active ones.
+  const targetPeriodId = resolvedParams.period || activePeriod?.id || allPeriods[0]?.id
 
   const currentPage = Number(resolvedParams.page ?? '1')
   const offset = (currentPage - 1) * PAGE_SIZE
 
   const { data: transactions, count } = await fetchTransactions({
-    dateFrom: resolvedParams.from,
-    dateTo: resolvedParams.to,
+    periodId: targetPeriodId,
     cashSourceId: resolvedParams.source,
     categoryId: resolvedParams.category,
+    receiptStatus: resolvedParams.status,
+    search: resolvedParams.search,
     limit: PAGE_SIZE,
     offset,
   })
@@ -39,10 +46,11 @@ export default async function RiwayatTransaksiPage({
 
   function pageUrl(page: number) {
     const params = new URLSearchParams()
-    if (resolvedParams.from) params.set('from', resolvedParams.from)
-    if (resolvedParams.to) params.set('to', resolvedParams.to)
+    if (resolvedParams.period) params.set('period', resolvedParams.period)
     if (resolvedParams.source) params.set('source', resolvedParams.source)
     if (resolvedParams.category) params.set('category', resolvedParams.category)
+    if (resolvedParams.status) params.set('status', resolvedParams.status)
+    if (resolvedParams.search) params.set('search', resolvedParams.search)
     params.set('page', String(page))
     return `/transaksi/riwayat?${params.toString()}`
   }
@@ -59,6 +67,7 @@ export default async function RiwayatTransaksiPage({
       <TransactionFilters
         cashSources={cashSources}
         categories={masterData.categories}
+        periods={allPeriods}
       />
 
       <TransactionTable transactions={transactions} isAdmin={isAdmin} />

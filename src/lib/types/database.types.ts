@@ -9,6 +9,82 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      accounting_periods: {
+        Row: {
+          id: string
+          name: string
+          start_date: string
+          end_date: string
+          status: 'OPEN' | 'CLOSED'
+          created_by: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          start_date: string
+          end_date: string
+          status?: 'OPEN' | 'CLOSED'
+          created_by: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          start_date?: string
+          end_date?: string
+          status?: 'OPEN' | 'CLOSED'
+          created_by?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      non_cash_transactions: {
+        Row: {
+          id: string
+          period_id_origin: string
+          user_id: string
+          date: string
+          amount: number
+          description: string
+          receipt_file_path: string | null
+          status: 'BELUM DIGANTI' | 'SUDAH DIGANTI'
+          reimbursed_by_tx_id: string | null
+          reimbursed_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          period_id_origin: string
+          user_id: string
+          date: string
+          amount: number
+          description: string
+          receipt_file_path?: string | null
+          status?: 'BELUM DIGANTI' | 'SUDAH DIGANTI'
+          reimbursed_by_tx_id?: string | null
+          reimbursed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          period_id_origin?: string
+          user_id?: string
+          date?: string
+          amount?: number
+          description?: string
+          receipt_file_path?: string | null
+          status?: 'BELUM DIGANTI' | 'SUDAH DIGANTI'
+          reimbursed_by_tx_id?: string | null
+          reimbursed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
       profiles: {
         Row: {
           id: string
@@ -129,6 +205,7 @@ export interface Database {
       allocations: {
         Row: {
           id: string
+          period_id: string
           date: string
           source_id: string
           destination_id: string
@@ -141,6 +218,7 @@ export interface Database {
         }
         Insert: {
           id?: string
+          period_id: string
           date: string
           source_id: string
           destination_id: string
@@ -153,6 +231,7 @@ export interface Database {
         }
         Update: {
           id?: string
+          period_id?: string
           date?: string
           source_id?: string
           destination_id?: string
@@ -167,6 +246,7 @@ export interface Database {
       transactions: {
         Row: {
           id: string
+          period_id: string
           date: string
           cash_source_id: string
           recipient_name: string
@@ -175,8 +255,10 @@ export interface Database {
           division_id: string
           amount: number
           description: string | null
-          receipt_date: string
-          handover_date: string
+          receipt_date: string | null
+          handover_date: string | null
+          receipt_status: 'BELUM ADA' | 'SUDAH ADA'
+          receipt_file_path: string | null
           created_by: string
           created_at: string
           updated_by: string
@@ -184,6 +266,7 @@ export interface Database {
         }
         Insert: {
           id?: string
+          period_id: string
           date: string
           cash_source_id: string
           recipient_name: string
@@ -192,8 +275,10 @@ export interface Database {
           division_id: string
           amount: number
           description?: string | null
-          receipt_date: string
-          handover_date: string
+          receipt_date?: string | null
+          handover_date?: string | null
+          receipt_status?: 'BELUM ADA' | 'SUDAH ADA'
+          receipt_file_path?: string | null
           created_by: string
           created_at?: string
           updated_by: string
@@ -201,6 +286,7 @@ export interface Database {
         }
         Update: {
           id?: string
+          period_id?: string
           date?: string
           cash_source_id?: string
           recipient_name?: string
@@ -209,8 +295,10 @@ export interface Database {
           division_id?: string
           amount?: number
           description?: string | null
-          receipt_date?: string
-          handover_date?: string
+          receipt_date?: string | null
+          handover_date?: string | null
+          receipt_status?: 'BELUM ADA' | 'SUDAH ADA'
+          receipt_file_path?: string | null
           created_by?: string
           created_at?: string
           updated_by?: string
@@ -224,7 +312,7 @@ export interface Database {
           cash_source_id: string
           code: string
           name: string
-          type: 'MAIN' | 'INDIVIDUAL'
+          type: 'MAIN' | 'INDIVIDUAL' | 'SYSTEM'
           is_active: boolean
           balance: number
         }
@@ -238,6 +326,7 @@ export interface Database {
           p_destination_id: string
           p_amount: number
           p_description: string
+          p_period_id: string
         }
         Returns: string
       }
@@ -251,8 +340,11 @@ export interface Database {
           p_division_id: string
           p_amount: number
           p_description: string | null
-          p_receipt_date: string
-          p_handover_date: string
+          p_receipt_date: string | null
+          p_handover_date: string | null
+          p_period_id: string
+          p_receipt_status?: string
+          p_receipt_file_path?: string | null
         }
         Returns: string
       }
@@ -267,15 +359,40 @@ export interface Database {
           p_division_id: string
           p_amount: number
           p_description: string | null
-          p_receipt_date: string
-          p_handover_date: string
+          p_receipt_date: string | null
+          p_handover_date: string | null
+          p_receipt_status?: string
+          p_receipt_file_path?: string | null
         }
         Returns: string
+      }
+      fund_period: {
+        Args: {
+          p_amount: number
+          p_period_id: string
+        }
+        Returns: Json
+      }
+      close_period: {
+        Args: {
+          p_period_id: string
+        }
+        Returns: Json
+      }
+      reimburse_non_cash: {
+        Args: {
+          p_non_cash_id: string
+          p_period_id: string
+        }
+        Returns: Json
       }
     }
     Enums: {
       user_role: 'ADMIN' | 'USER'
       cash_source_type: 'MAIN' | 'INDIVIDUAL' | 'SYSTEM'
+      period_status: 'OPEN' | 'CLOSED'
+      receipt_status_type: 'BELUM ADA' | 'SUDAH ADA'
+      reimbursement_status: 'BELUM DIGANTI' | 'SUDAH DIGANTI'
     }
   }
 }

@@ -2,15 +2,22 @@
 
 import { revalidatePath } from 'next/cache'
 import { submitAllocation } from '@/lib/services/allocation.service'
+import { getActivePeriod, fundPeriod } from '@/lib/services/period.service'
 
 export async function submitAllocationAction(formData: FormData) {
   try {
+    const activePeriod = await getActivePeriod()
+    if (!activePeriod) {
+      return { error: 'Belum ada periode aktif' }
+    }
+
     const data = {
       date: formData.get('date') as string,
       source_id: formData.get('source_id') as string,
       destination_id: formData.get('destination_id') as string,
       amount: Number(formData.get('amount')),
       description: formData.get('description') as string,
+      period_id: activePeriod.id
     }
 
     if (data.source_id === data.destination_id) {
@@ -20,9 +27,8 @@ export async function submitAllocationAction(formData: FormData) {
       return { error: 'Nominal alokasi harus lebih dari 0.' }
     }
 
-    await submitAllocation(data)
+    await submitAllocation(data as any) // Updated typing to include period_id in allocation.service
 
-    // Revalidate paths to update UI
     revalidatePath('/')
     revalidatePath('/alokasi')
     revalidatePath('/alokasi/riwayat')
@@ -39,67 +45,53 @@ export async function submitAllocationAction(formData: FormData) {
       errorMsg = 'Sumber dan tujuan dana tidak boleh sama.'
     } else if (errorMsg.includes('ERR_UNAUTHORIZED')) {
       errorMsg = 'Anda tidak memiliki izin melakukan alokasi.'
-    } else if (errorMsg.includes('ERR_INVALID_INPUT')) {
-      errorMsg = 'Data alokasi belum lengkap atau tidak valid.'
+    } else if (errorMsg.includes('ERR_PERIOD_CLOSED')) {
+      errorMsg = 'Periode ini sudah ditutup.'
     }
 
     return { error: errorMsg }
   }
 }
 
-export async function setBudgetCeilingAction(targetAmount: number) {
+export async function fundPeriodAction(amount: number) {
   try {
-    const { createClient } = await import('@/lib/supabase/server');
-    const { getCurrentProfile } = await import('@/lib/services/auth.service');
+    const { getCurrentProfile } = await import('@/lib/services/auth.service')
     
-    const profile = await getCurrentProfile();
+    const profile = await getCurrentProfile()
     if (!profile || profile.role !== 'ADMIN') {
-      return { error: 'Anda tidak memiliki hak untuk menetapkan pagu.' };
+      return { error: 'Anda tidak memiliki hak untuk melakukan pendanaan.' }
     }
 
-    if (typeof targetAmount !== 'number' || isNaN(targetAmount) || targetAmount <= 0) {
-      return { error: 'Nilai pagu harus lebih besar dari Rp0.' };
+    if (typeof amount !== 'number' || isNaN(amount) || amount <= 0) {
+      return { error: 'Nilai pagu harus lebih besar dari Rp0.' }
     }
 
-    const supabase = await createClient();
-
-    // Call the RPC
-    const today = new Date().toISOString().split('T')[0];
-    const { data, error } = await supabase.rpc('set_budget_ceiling' as any, {
-      p_target_amount: targetAmount,
-      p_date: today
-    } as any);
-
-    if (error) {
-      throw error;
+    const activePeriod = await getActivePeriod()
+    if (!activePeriod) {
+      return { error: 'Belum ada periode aktif untuk didanai.' }
     }
 
-    // Revalidate paths to update UI
+    const data = await fundPeriod(amount, activePeriod.id)
+
     revalidatePath('/')
     revalidatePath('/alokasi')
     revalidatePath('/alokasi/riwayat')
     revalidatePath('/rekap')
 
-    return { success: true, data };
+    return { success: true, data }
   } catch (error: any) {
-    console.error('Set budget ceiling error:', error);
+    console.error('Fund period error:', error)
     
-    let errorMsg = error.message || 'Terjadi kesalahan saat menetapkan pagu kas.';
+    let errorMsg = error.message || 'Terjadi kesalahan saat melakukan pendanaan.'
     
     if (errorMsg.includes('ERR_UNAUTHORIZED')) {
-      errorMsg = 'Anda tidak memiliki hak untuk menetapkan pagu.';
-    } else if (errorMsg.includes('ERR_INVALID_TARGET')) {
-      errorMsg = 'Nilai pagu harus lebih besar dari Rp0.';
-    } else if (errorMsg.includes('ERR_MAIN_NOT_FOUND')) {
-      errorMsg = 'Kas Utama tidak ditemukan.';
-    } else if (errorMsg.includes('ERR_SYSTEM_NOT_FOUND')) {
-      errorMsg = 'Sumber dana eksternal belum tersedia.';
-    } else if (errorMsg.includes('ERR_INSUFFICIENT_FUNDS')) {
-      errorMsg = 'Saldo Kas Utama tidak mencukupi untuk pengembalian dana.';
-    } else if (errorMsg.includes('could not serialize access due to concurrent update')) {
-      errorMsg = 'Saldo Kas Utama berubah saat proses berlangsung. Silakan coba lagi.';
+      errorMsg = 'Anda tidak memiliki hak untuk melakukan pendanaan.'
+    } else if (errorMsg.includes('ERR_PERIOD_CLOSED')) {
+      errorMsg = 'Periode ini sudah ditutup.'
+    } else if (errorMsg.includes('ERR_ALREADY_FUNDED')) {
+      errorMsg = 'Periode ini sudah menerima pendanaan utama.'
     }
 
-    return { error: errorMsg };
+    return { error: errorMsg }
   }
 }

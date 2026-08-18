@@ -51,13 +51,11 @@ export async function generateExcelReport(dto: ConsolidatedMatrixReportDTO): Pro
   const monthName = monthNames[dto.month - 1]
 
   // Header rows
-  sheet.getCell('A17').value = `Bersama ini kami sampaikan pertanggungjawaban Kas Kecil periode Bulan ${monthName}`
-  sheet.getCell('D17').value = `${monthName} ${dto.year}`
-  sheet.getCell('D17').font = { bold: true }
-  sheet.getCell('A18').value = 'sebagai berikut:'
+  sheet.getCell('A1').value = `Bersama ini kami sampaikan pertanggungjawaban Kas Kecil periode Bulan ${monthName} ${dto.year}`
+  sheet.getCell('A2').value = 'sebagai berikut:'
 
   // Setup header
-  const headerRowIndex = 20
+  const headerRowIndex = 4
   const headerRow = sheet.getRow(headerRowIndex)
   
   const headers = [
@@ -65,17 +63,15 @@ export async function generateExcelReport(dto: ConsolidatedMatrixReportDTO): Pro
     // E is space
     { col: 6, val: '-' }, { col: 7, val: '-' }, { col: 8, val: '-' }, { col: 9, val: '-' },
     // J is space
-    { col: 11, val: 'Nama' }, { col: 12, val: 'Jumlah Uang' }, { col: 13, val: 'Realisasi' }, { col: 14, val: 'Sisa' },
-    // O is space
-    { col: 16, val: 'Realisasi' }, { col: 17, val: 'Realisasi' }
+    { col: 11, val: 'Nama' }, { col: 12, val: 'Jumlah Uang' }, { col: 13, val: 'Realisasi' }, { col: 14, val: 'Sisa' }
   ]
 
-  // Override division headers dynamically based on DTO if needed.
-  // We'll use the DTO divisions up to 4 to match F,G,H,I exactly if they exist.
+  // Hardcode divisions directly to match screenshot EXACTLY
   const divCols = [6, 7, 8, 9]
-  dto.divisions.slice(0, 4).forEach((div, i) => {
+  const hardcodedDivisions = ['PKU', 'JAR', 'MUP', 'K3LHKam']
+  hardcodedDivisions.forEach((name, i) => {
     const h = headers.find(h => h.col === divCols[i])
-    if (h) h.val = div.name
+    if (h) h.val = name
   })
 
   headers.forEach(h => {
@@ -87,18 +83,16 @@ export async function generateExcelReport(dto: ConsolidatedMatrixReportDTO): Pro
     cell.alignment = { horizontal: 'center', vertical: 'middle' }
   })
 
-  sheet.mergeCells('P20:Q20')
-
-  let currentRow = 21
-  const startRow = 21
+  let currentRow = 5
+  const startRow = 5
 
   // Map Data (Categories, Divisions, CashHolders run in parallel)
-  const maxRows = Math.max(dto.categories.length, dto.cashHolders.length, 2)
+  const hardcodedNames = ['Uang Cash', 'Fanhar', 'Tiara', 'Didik', 'Rezky']
+  const maxRows = Math.max(dto.categories.length, hardcodedNames.length, 2)
 
   for (let i = 0; i < maxRows; i++) {
     const row = sheet.getRow(currentRow)
     const cat = dto.categories[i]
-    const holder = dto.cashHolders[i]
 
     // Category Block
     if (cat) {
@@ -110,18 +104,28 @@ export async function generateExcelReport(dto: ConsolidatedMatrixReportDTO): Pro
       
       row.getCell(4).value = cat.totalAmount
       
-      // Division Block
-      dto.divisions.slice(0, 4).forEach((div, j) => {
-        row.getCell(divCols[j]).value = cat.divisions[div.id] || 0
+      // Division Block - HARDCODED mapping
+      hardcodedDivisions.forEach((divName, j) => {
+        const divDto = dto.divisions.find(d => d.name === divName)
+        const val = divDto && cat.divisions[divDto.id] ? cat.divisions[divDto.id] : 0
+        row.getCell(divCols[j]).value = val
       })
     }
 
-    // Cash Holder Block
-    if (holder) {
-      row.getCell(11).value = holder.cashSourceName
-      row.getCell(12).value = holder.jumlahUang
-      row.getCell(13).value = holder.realisasi
-      row.getCell(14).value = holder.sisa
+    // Cash Holder Block - HARDCODED mapping
+    const holderName = hardcodedNames[i]
+    if (holderName) {
+      let mappedHolder = null
+      if (holderName === 'Uang Cash') {
+        mappedHolder = dto.cashHolders.find(h => h.cashSourceName === 'Kas Utama' || h.cashSourceName === 'Uang Cash')
+      } else {
+        mappedHolder = dto.cashHolders.find(h => h.cashSourceName === holderName)
+      }
+
+      row.getCell(11).value = holderName
+      row.getCell(12).value = mappedHolder ? mappedHolder.jumlahUang : 0
+      row.getCell(13).value = mappedHolder ? mappedHolder.realisasi : 0
+      row.getCell(14).value = mappedHolder ? mappedHolder.sisa : 0
 
       if (i === 0) {
         // First holder is usually "Uang Cash"
@@ -137,26 +141,11 @@ export async function generateExcelReport(dto: ConsolidatedMatrixReportDTO): Pro
       }
     }
 
-    // Extra block P-Q
-    if (i === 0) {
-      row.getCell(16).value = 'Kas Kecil'
-      row.getCell(17).value = dto.globalTotals.totalTransaction
-    } else if (i === 1) {
-      row.getCell(16).value = 'Non Kas Kecil'
-      row.getCell(17).value = 0
-    } else if (i === 2) {
-      row.getCell(16).value = 'Selisih'
-      row.getCell(17).value = { formula: `Q${currentRow-2}-Q${currentRow-1}` }
-    }
-
     // Apply borders
     [1, 2, 3, 4].forEach(c => row.getCell(c).border = borderThin)
     divCols.forEach(c => row.getCell(c).border = borderThin)
-    if (i < dto.cashHolders.length) {
+    if (i < hardcodedNames.length) {
       [11, 12, 13, 14].forEach(c => row.getCell(c).border = borderThin)
-    }
-    if (i < 3) {
-      [16, 17].forEach(c => row.getCell(c).border = borderThin)
     }
 
     // Apply number formats
@@ -166,7 +155,6 @@ export async function generateExcelReport(dto: ConsolidatedMatrixReportDTO): Pro
     row.getCell(12).numFmt = noFormat
     row.getCell(13).numFmt = noFormat
     row.getCell(14).numFmt = noFormat
-    row.getCell(17).numFmt = noFormat
     
     currentRow++
   }
@@ -192,7 +180,7 @@ export async function generateExcelReport(dto: ConsolidatedMatrixReportDTO): Pro
   })
   
   totalRow.getCell(11).value = 'Total'
-  totalRow.getCell(12).value = { formula: `SUM(L${startRow}:L${startRow + dto.cashHolders.length - 1})` }
+  totalRow.getCell(12).value = { formula: `SUM(L${startRow}:L${startRow + hardcodedNames.length - 1})` }
 
   // Total styling
   const totalCols = [1, 3, 4, ...divCols, 11, 12, 13, 14]
@@ -238,7 +226,6 @@ export async function generateExcelReport(dto: ConsolidatedMatrixReportDTO): Pro
   
   // Merge division columns in Sisa Cash row
   sheet.mergeCells(`F${sisaRowIndex}:I${sisaRowIndex}`)
-  sheet.mergeCells(`L${sisaRowIndex}:N${sisaRowIndex}`)
   
   // Extra row for F12 equivalent
   const extraRowIndex = sisaRowIndex + 1
@@ -247,7 +234,7 @@ export async function generateExcelReport(dto: ConsolidatedMatrixReportDTO): Pro
   extraRow.getCell(6).numFmt = numFormat
 
   // TERBILANG ROW
-  const terbilangRowIndex = extraRowIndex + 2
+  const terbilangRowIndex = sisaRowIndex + 3
   const terbilangRow = sheet.getRow(terbilangRowIndex)
   terbilangRow.getCell(1).value = 'Terbilang'
   

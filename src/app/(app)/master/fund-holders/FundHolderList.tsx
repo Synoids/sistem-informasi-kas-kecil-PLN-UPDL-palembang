@@ -2,8 +2,10 @@
 
 import { useState } from 'react'
 import { Database } from '@/lib/types/database.types'
-import { createFundHolderAction, updateFundHolderAction, toggleFundHolderActiveAction } from '@/app/(app)/master/actions'
+import { createFundHolderAction, updateFundHolderAction, toggleFundHolderActiveAction, deleteFundHolderAction } from '@/app/(app)/master/actions'
 import { showToast } from '@/app/components/Toast'
+import { SuccessModal } from '@/app/components/SuccessModal'
+import { Spinner } from '@/app/components/Spinner'
 import { useRouter } from 'next/navigation'
 
 type FundHolder = Database['public']['Tables']['fund_holders']['Row']
@@ -13,6 +15,8 @@ export function FundHolderList({ initialData }: { initialData: FundHolder[] }) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isPending, setIsPending] = useState(false)
   const [editingItem, setEditingItem] = useState<FundHolder | null>(null)
+  const [successMessage, setSuccessMessage] = useState('')
+  const [error, setError] = useState<string | null>(null)
 
   const router = useRouter()
   const [filterActive, setFilterActive] = useState<string>('all')
@@ -51,20 +55,21 @@ export function FundHolderList({ initialData }: { initialData: FundHolder[] }) {
 
   async function handleAction(formData: FormData) {
     setIsPending(true)
+    setError(null)
     try {
       const result = editingItem 
         ? await updateFundHolderAction(editingItem.id, formData)
         : await createFundHolderAction(formData)
         
       if (result?.error) {
-        showToast(result.error, 'error')
+        setError(result.error)
       } else {
-        showToast(editingItem ? 'Pemegang Dana berhasil diupdate.' : 'Pemegang Dana berhasil ditambahkan.', 'success')
+        setSuccessMessage(editingItem ? 'Pemegang Dana berhasil diupdate.' : 'Pemegang Dana berhasil ditambahkan.')
         closeModal()
         router.refresh()
       }
     } catch (err: any) {
-      showToast(err.message || 'Terjadi kesalahan', 'error')
+      setError(err.message || 'Terjadi kesalahan')
     } finally {
       setIsPending(false)
     }
@@ -81,7 +86,28 @@ export function FundHolderList({ initialData }: { initialData: FundHolder[] }) {
       if (result?.error) {
         showToast(result.error, 'error')
       } else {
-        showToast(`Pemegang Dana berhasil ${item.is_active ? 'dinonaktifkan' : 'diaktifkan'}.`, 'success')
+        setSuccessMessage(`Pemegang Dana berhasil ${item.is_active ? 'dinonaktifkan' : 'diaktifkan'}.`)
+        router.refresh()
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Terjadi kesalahan', 'error')
+    } finally {
+      setIsPending(false)
+    }
+  }
+
+  async function handleDelete(item: FundHolder) {
+    if (!window.confirm(`PERINGATAN: Yakin ingin MENGHAPUS PERMANEN Pemegang Dana "${item.name}"? Ini tidak dapat dibatalkan.`)) {
+      return
+    }
+    
+    setIsPending(true)
+    try {
+      const result = await deleteFundHolderAction(item.id)
+      if (result?.error) {
+        showToast(result.error, 'error')
+      } else {
+        setSuccessMessage('Pemegang Dana berhasil dihapus permanen.')
         router.refresh()
       }
     } catch (err: any) {
@@ -93,6 +119,12 @@ export function FundHolderList({ initialData }: { initialData: FundHolder[] }) {
 
   return (
     <div className="space-y-4">
+      <SuccessModal 
+        isOpen={!!successMessage} 
+        message={successMessage} 
+        onClose={() => setSuccessMessage('')} 
+      />
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div className="flex gap-3 w-full sm:w-auto">
           <input 
@@ -163,9 +195,16 @@ export function FundHolderList({ initialData }: { initialData: FundHolder[] }) {
                     <button 
                       onClick={() => toggleStatus(item)}
                       disabled={isPending}
-                      className={item.is_active ? "text-red-600 hover:text-red-800 transition-colors disabled:opacity-50" : "text-green-600 hover:text-green-800 transition-colors disabled:opacity-50"}
+                      className={item.is_active ? "text-amber-600 hover:text-amber-800 transition-colors disabled:opacity-50" : "text-green-600 hover:text-green-800 transition-colors disabled:opacity-50"}
                     >
                       {item.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(item)}
+                      disabled={isPending}
+                      className="text-red-600 hover:text-red-800 transition-colors disabled:opacity-50"
+                    >
+                      Hapus
                     </button>
                   </td>
                 </tr>
@@ -186,6 +225,12 @@ export function FundHolderList({ initialData }: { initialData: FundHolder[] }) {
                 ✕
               </button>
             </div>
+            
+            {error && (
+              <div className="mx-6 mt-4 p-3 bg-red-50 text-red-600 rounded-md text-sm border border-red-100">
+                {error}
+              </div>
+            )}
             
             <form action={handleAction} className="p-6">
               <div className="space-y-4">
@@ -222,16 +267,17 @@ export function FundHolderList({ initialData }: { initialData: FundHolder[] }) {
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={isPending}
+                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={isPending}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center min-w-[120px]"
                 >
-                  {isPending ? 'Menyimpan...' : 'Simpan'}
+                  {isPending ? <><Spinner className="mr-2" /> Menyimpan...</> : 'Simpan'}
                 </button>
               </div>
             </form>

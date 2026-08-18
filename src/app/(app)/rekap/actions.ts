@@ -24,8 +24,8 @@ export async function getTransactionDetail(id: string): Promise<TransactionWithD
       cash_sources (id, name),
       categories (id, name),
       divisions (id, name),
-      created_by_profile:profiles!transactions_created_by_fkey (id, name),
-      updated_by_profile:profiles!transactions_updated_by_fkey (id, name)
+      created_by_profile:profiles!transactions_created_by_fkey (id, full_name),
+      updated_by_profile:profiles!transactions_updated_by_fkey (id, full_name)
     `)
     .eq('id', id)
     .single()
@@ -48,8 +48,8 @@ export async function getTransactionDetail(id: string): Promise<TransactionWithD
     cash_source_name: (tx.cash_sources as any)?.name || 'Unknown',
     category_name: (tx.categories as any)?.name || 'Unknown',
     division_name: (tx.divisions as any)?.name || 'Unknown',
-    created_by_name: (tx.created_by_profile as any)?.name || 'Unknown',
-    updated_by_name: (tx.updated_by_profile as any)?.name || null
+    created_by_name: (tx.created_by_profile as any)?.full_name || 'Unknown',
+    updated_by_name: (tx.updated_by_profile as any)?.full_name || null
   }
 }
 
@@ -80,7 +80,7 @@ export async function getAllocationDetail(id: string): Promise<AllocationDetail 
       *,
       source:cash_sources!allocations_source_id_fkey (id, name),
       destination:cash_sources!allocations_destination_id_fkey (id, name),
-      created_by_profile:profiles!allocations_created_by_fkey (id, name)
+      created_by_profile:profiles!allocations_created_by_fkey (id, full_name)
     `)
     .eq('id', id)
     .single()
@@ -105,7 +105,7 @@ export async function getAllocationDetail(id: string): Promise<AllocationDetail 
     description: alloc.description,
     source_name: (alloc.source as any)?.name || 'Unknown',
     destination_name: (alloc.destination as any)?.name || 'Unknown',
-    created_by_name: (alloc.created_by_profile as any)?.name || 'Unknown',
+    created_by_name: (alloc.created_by_profile as any)?.full_name || 'Unknown',
     created_at: alloc.created_at
   }
 }

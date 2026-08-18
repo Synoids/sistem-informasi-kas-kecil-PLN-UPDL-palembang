@@ -10,19 +10,21 @@ type NavItem = {
   icon: string
 }
 
-const adminNav: NavItem[] = [
+const adminNav = [
   { label: 'Dashboard', href: '/', icon: '📊' },
   { label: 'Input Transaksi', href: '/transaksi', icon: '✏️' },
   { label: 'Riwayat Transaksi', href: '/transaksi/riwayat', icon: '📋' },
-  { label: 'Alokasi Dana', href: '/alokasi', icon: '💰' },
-  { label: 'Rekap Bulanan', href: '/rekap', icon: '📄' },
-  { label: 'Master Data', href: '/master', icon: '⚙️' },
+  { label: 'Alokasi Dana', href: '/alokasi', icon: '💸' },
+  { label: 'Non-Kas Kecil', href: '/non-kas-kecil', icon: '💳' },
+  { label: 'Rekapitulasi', href: '/rekap', icon: '📑' },
+  { label: 'Master Data', href: '/master/periods', icon: '⚙️' },
 ]
 
-const userNav: NavItem[] = [
+const userNav = [
   { label: 'Dashboard', href: '/', icon: '📊' },
   { label: 'Input Transaksi', href: '/transaksi', icon: '✏️' },
   { label: 'Riwayat Transaksi', href: '/transaksi/riwayat', icon: '📋' },
+  { label: 'Non-Kas Kecil', href: '/non-kas-kecil', icon: '💳' },
 ]
 
 export function Sidebar({ role, fullName }: { role: 'ADMIN' | 'USER'; fullName: string }) {
@@ -40,6 +42,8 @@ export function Sidebar({ role, fullName }: { role: 'ADMIN' | 'USER'; fullName: 
           let isActive = false
           if (item.href === '/') {
             isActive = pathname === '/'
+          } else if (item.label === 'Master Data') {
+            isActive = pathname.startsWith('/master')
           } else {
             isActive = pathname.startsWith(item.href)
             // Prevent "Input Transaksi" from being highlighted when in "Riwayat Transaksi"

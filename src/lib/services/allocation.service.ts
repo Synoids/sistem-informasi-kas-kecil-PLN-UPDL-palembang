@@ -45,6 +45,7 @@ export async function fetchAllocations(
   // Flatten the joined data
   const flattened: AllocationWithDetails[] = data.map((row: any) => ({
     id: row.id,
+    period_id: row.period_id,
     date: row.date,
     source_id: row.source_id,
     destination_id: row.destination_id,
@@ -70,17 +71,18 @@ export async function submitAllocation(data: {
   destination_id: string
   amount: number
   description: string
+  period_id: string
 }) {
   const supabase = await createClient()
 
   // Execute RPC for create_allocation
-  // Note: we might need to cast to any due to inferred typescript union bugs in supabase-js for RPCs with complex arguments
   const { data: allocationId, error } = await supabase.rpc('create_allocation', {
     p_date: data.date,
     p_source_id: data.source_id,
     p_destination_id: data.destination_id,
     p_amount: data.amount,
     p_description: data.description,
+    p_period_id: data.period_id
   } as any)
 
   if (error) {

@@ -87,22 +87,26 @@ export default async function RekapPage(props: {
         </div>
       ) : reportData ? (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
-              <p className="text-sm text-slate-500 font-medium">Saldo Awal</p>
-              <p className="text-xl font-bold text-slate-800 mt-1">{formatRupiah(reportData.openingBalance)}</p>
+              <p className="text-sm text-slate-500 font-medium">Pagu Anggaran</p>
+              <p className="text-xl font-bold text-slate-800 mt-1">{formatRupiah(reportData.totalIn)}</p>
             </div>
-            <div className="bg-white p-4 rounded-lg border border-green-200 bg-green-50/30 shadow-sm">
-              <p className="text-sm text-green-700 font-medium">Total Dana Masuk</p>
-              <p className="text-xl font-bold text-green-800 mt-1">{formatRupiah(reportData.totalIn)}</p>
+            <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+              <p className="text-sm text-slate-500 font-medium">Total Belanja Operasional</p>
+              <p className="text-xl font-bold text-slate-800 mt-1">{formatRupiah(reportData.totalBelanja)}</p>
             </div>
-            <div className="bg-white p-4 rounded-lg border border-red-200 bg-red-50/30 shadow-sm">
-              <p className="text-sm text-red-700 font-medium">Total Pengeluaran</p>
-              <p className="text-xl font-bold text-red-800 mt-1">{formatRupiah(reportData.totalOut)}</p>
+            <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+              <p className="text-sm text-slate-500 font-medium">Uang yang Belum Terpakai</p>
+              <p className="text-xl font-bold text-slate-800 mt-1">{formatRupiah(reportData.openingBalance + reportData.totalIn - reportData.totalBelanja)}</p>
             </div>
-            <div className="bg-white p-4 rounded-lg border border-blue-200 bg-blue-50/30 shadow-sm">
-              <p className="text-sm text-blue-700 font-medium">Saldo Akhir</p>
-              <p className="text-xl font-bold text-blue-800 mt-1">{formatRupiah(reportData.endingBalance)}</p>
+            <div className={`p-4 rounded-lg border shadow-sm ${reportData.isClosed ? 'bg-yellow-50 border-yellow-200' : 'bg-blue-50 border-blue-200'}`}>
+              <p className={`text-sm font-medium ${reportData.isClosed ? 'text-yellow-700' : 'text-blue-700'}`}>
+                {reportData.isClosed ? 'Dikembalikan ke Pusat' : 'Status Periode'}
+              </p>
+              <p className={`text-lg font-bold mt-1 ${reportData.isClosed ? 'text-yellow-800' : 'text-blue-800'}`}>
+                {reportData.isClosed ? formatRupiah(reportData.totalSweep) : 'Sedang Berjalan (Belum Ditutup)'}
+              </p>
             </div>
           </div>
 

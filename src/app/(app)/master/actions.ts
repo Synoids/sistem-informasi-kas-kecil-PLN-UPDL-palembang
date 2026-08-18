@@ -82,6 +82,28 @@ export async function toggleFundHolderActiveAction(id: string, currentStatus: bo
   }
 }
 
+export async function deleteFundHolderAction(id: string) {
+  try {
+    await checkAdmin()
+    if (!id) return { error: 'ID tidak valid.' }
+
+    const supabase = await createClient() as any
+    const { error } = await supabase.from('fund_holders').delete().eq('id', id)
+
+    if (error) {
+      if (error.code === '23503') {
+        return { error: 'Data tidak dapat dihapus karena sedang digunakan oleh Sumber Dana.' }
+      }
+      return { error: handleSupabaseError(error) }
+    }
+    
+    revalidatePath('/master/fund-holders')
+    return { success: true }
+  } catch (err: any) {
+    return { error: err.message || 'Error' }
+  }
+}
+
 // ==========================================
 // CATEGORIES
 // ==========================================
@@ -289,6 +311,28 @@ export async function toggleCashSourceActiveAction(id: string, currentStatus: bo
     const { error } = await supabase.from('cash_sources').update({ is_active: !currentStatus }).eq('id', id)
 
     if (error) return { error: handleSupabaseError(error) }
+    
+    revalidatePath('/master/cash-sources')
+    return { success: true }
+  } catch (err: any) {
+    return { error: err.message || 'Error' }
+  }
+}
+
+export async function deleteCashSourceAction(id: string) {
+  try {
+    await checkAdmin()
+    if (!id) return { error: 'ID tidak valid.' }
+
+    const supabase = await createClient() as any
+    const { error } = await supabase.from('cash_sources').delete().eq('id', id)
+
+    if (error) {
+      if (error.code === '23503') {
+        return { error: 'Data tidak dapat dihapus karena sudah memiliki histori transaksi, alokasi, atau terhubung dengan pengguna.' }
+      }
+      return { error: handleSupabaseError(error) }
+    }
     
     revalidatePath('/master/cash-sources')
     return { success: true }

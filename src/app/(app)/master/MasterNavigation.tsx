@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const tabs = [
+  { name: 'Periode', href: '/master/periods' },
   { name: 'Pemegang Dana', href: '/master/fund-holders' },
   { name: 'Kategori', href: '/master/categories' },
   { name: 'Bidang / Divisi', href: '/master/divisions' },

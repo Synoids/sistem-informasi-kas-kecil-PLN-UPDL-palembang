@@ -94,6 +94,22 @@ export function TransactionTable({ transactions, isAdmin }: TransactionTableProp
                       </div>
                     </td>
                     <td className="px-5 py-3 align-top text-xs text-slate-500">
+                      <div className="mb-1.5 flex flex-col gap-1 items-start">
+                        {tx.receipt_status === 'SUDAH ADA' ? (
+                          <span className="inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+                            ✓ Kuitansi
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                            ⚠️ Blm Kuitansi
+                          </span>
+                        )}
+                        {tx.period_status === 'CLOSED' && (
+                          <span className="inline-flex items-center rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 ring-1 ring-inset ring-slate-500/20">
+                            🔒 CLOSED
+                          </span>
+                        )}
+                      </div>
                       <div>Kw: {formatDate(tx.receipt_date)}</div>
                       <div className="mt-0.5">Sh: {formatDate(tx.handover_date)}</div>
                     </td>
@@ -103,19 +119,12 @@ export function TransactionTable({ transactions, isAdmin }: TransactionTableProp
                       </div>
                     </td>
                     <td className="px-5 py-3 align-top text-center space-y-2" onClick={(e) => e.stopPropagation()}>
-                      {isAdmin && (
-                        <Link
-                          href={`/transaksi/${tx.id}/edit`}
-                          className="block w-full text-center text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors bg-white border border-slate-200 rounded px-2 py-1"
-                        >
-                          Edit
-                        </Link>
-                      )}
-                      {!isAdmin && (
-                        <span className="block w-full text-center text-xs font-medium text-slate-400">
-                          —
-                        </span>
-                      )}
+                      <Link
+                        href={`/transaksi/${tx.id}/edit`}
+                        className="block w-full text-center text-xs font-medium text-slate-600 hover:text-blue-700 transition-colors bg-white border border-slate-200 hover:border-blue-300 rounded px-2 py-1.5 shadow-sm"
+                      >
+                        {tx.period_status === 'CLOSED' ? 'Upload Kw' : 'Edit'}
+                      </Link>
                     </td>
                   </tr>
                 ))
@@ -163,18 +172,30 @@ export function TransactionTable({ transactions, isAdmin }: TransactionTableProp
                       {tx.vehicle_number}
                     </span>
                   )}
+                  {tx.receipt_status === 'SUDAH ADA' ? (
+                    <span className="inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+                      ✓ Kuitansi
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                      ⚠️ Blm Kuitansi
+                    </span>
+                  )}
+                  {tx.period_status === 'CLOSED' && (
+                    <span className="inline-flex items-center rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 ring-1 ring-inset ring-slate-500/20">
+                      🔒 CLOSED
+                    </span>
+                  )}
                 </div>
 
-                {isAdmin && (
-                  <div className="flex pt-2 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
-                    <Link
-                      href={`/transaksi/${tx.id}/edit`}
-                      className="flex-1 text-center bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 py-1.5 rounded text-xs font-medium transition-colors"
-                    >
-                      Edit
-                    </Link>
-                  </div>
-                )}
+                <div className="flex pt-2 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
+                  <Link
+                    href={`/transaksi/${tx.id}/edit`}
+                    className="flex-1 text-center bg-white border border-slate-200 text-slate-600 hover:bg-blue-50 hover:text-blue-700 py-1.5 rounded text-xs font-medium transition-colors"
+                  >
+                    {tx.period_status === 'CLOSED' ? 'Upload Kuitansi' : 'Edit Transaksi'}
+                  </Link>
+                </div>
               </div>
             ))
           )}

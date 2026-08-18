@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Petty Cash</string>
+    <string name="title_activity_main">Petty Cash</string>
+    <string name="package_name">com.updl.pettycash</string>
+    <string name="custom_url_scheme">com.updl.pettycash</string>
+</resources>

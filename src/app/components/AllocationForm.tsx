@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { Database } from '@/lib/types/database.types'
 import { showToast } from './Toast'
 import { IndonesianDatePicker } from '@/app/components/IndonesianDatePicker'
+import { SuccessModal } from '@/app/components/SuccessModal'
+import { Spinner } from '@/app/components/Spinner'
 
 type CashSourceBalance = Database['public']['Views']['v_cash_source_balances']['Row']
 
@@ -16,6 +18,8 @@ export function AllocationForm({ cashSources }: AllocationFormProps) {
   const router = useRouter()
   const [isPending, setIsPending] = useState(false)
   const [amountStr, setAmountStr] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
+  const [error, setError] = useState<string | null>(null)
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/\D/g, '')
@@ -31,6 +35,7 @@ export function AllocationForm({ cashSources }: AllocationFormProps) {
 
   async function handleAction(formData: FormData) {
     setIsPending(true)
+    setError(null)
 
     try {
       const data = {
@@ -41,13 +46,13 @@ export function AllocationForm({ cashSources }: AllocationFormProps) {
 
       // Client-side validations
       if (data.source_id === data.destination_id) {
-        showToast('Sumber dan tujuan dana tidak boleh sama.', 'error')
+        setError('Sumber dan tujuan dana tidak boleh sama.')
         setIsPending(false)
         return
       }
 
       if (Number(data.amount) <= 0) {
-        showToast('Nominal alokasi harus lebih dari 0.', 'error')
+        setError('Nominal alokasi harus lebih dari 0.')
         setIsPending(false)
         return
       }
@@ -66,13 +71,13 @@ export function AllocationForm({ cashSources }: AllocationFormProps) {
       const result = await submitAllocationAction(formData)
       
       if (result?.error) {
-        showToast(result.error, 'error')
+        setError(result.error)
       } else {
-        showToast('Alokasi berhasil disimpan!', 'success')
+        setSuccessMessage('Alokasi berhasil disimpan!')
         setAmountStr('')
       }
     } catch (err: any) {
-      showToast(err.message || 'Terjadi kesalahan', 'error')
+      setError(err.message || 'Terjadi kesalahan')
     } finally {
       setIsPending(false)
     }
@@ -83,6 +88,18 @@ export function AllocationForm({ cashSources }: AllocationFormProps) {
 
   return (
     <form action={handleAction} className="space-y-5 bg-white p-6 rounded-xl border border-slate-200">
+      <SuccessModal 
+        isOpen={!!successMessage} 
+        message={successMessage} 
+        onClose={() => setSuccessMessage('')} 
+      />
+
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-md">
+          {error}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div>
           <label htmlFor="date" className="block text-sm font-medium text-slate-700 mb-1">Tanggal</label>
@@ -166,9 +183,9 @@ export function AllocationForm({ cashSources }: AllocationFormProps) {
         <button
           type="submit"
           disabled={isPending}
-          className="rounded-md bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="rounded-md bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50 transition-colors flex items-center justify-center min-w-[150px]"
         >
-          {isPending ? 'Menyimpan...' : 'Alokasikan Dana'}
+          {isPending ? <><Spinner className="mr-2" /> Menyimpan...</> : 'Alokasikan Dana'}
         </button>
       </div>
     </form>

@@ -4,9 +4,11 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { CashSourceAdminView } from '@/lib/services/master-data.service'
 import { Database } from '@/lib/types/database.types'
-import { createCashSourceAction, updateCashSourceAction, toggleCashSourceActiveAction } from '@/app/(app)/master/actions'
+import { createCashSourceAction, updateCashSourceAction, toggleCashSourceActiveAction, deleteCashSourceAction } from '@/app/(app)/master/actions'
 import { showToast } from '@/app/components/Toast'
 import { useRouter } from 'next/navigation'
+import { SuccessModal } from '@/app/components/SuccessModal'
+import { Spinner } from '@/app/components/Spinner'
 
 type FundHolder = Database['public']['Tables']['fund_holders']['Row']
 
@@ -23,6 +25,8 @@ export function CashSourceList({
   const [editingItem, setEditingItem] = useState<CashSourceAdminView | null>(null)
   
   const [formFundHolder, setFormFundHolder] = useState<string>('')
+  const [successMessage, setSuccessMessage] = useState('')
+  const [error, setError] = useState<string | null>(null)
 
   const router = useRouter()
   const [filterActive, setFilterActive] = useState<string>('all')
@@ -68,20 +72,21 @@ export function CashSourceList({
 
   async function handleAction(formData: FormData) {
     setIsPending(true)
+    setError(null)
     try {
       const result = editingItem 
         ? await updateCashSourceAction(editingItem.id, formData)
         : await createCashSourceAction(formData)
         
       if (result?.error) {
-        showToast(result.error, 'error')
+        setError(result.error)
       } else {
-        showToast(editingItem ? 'Sumber Dana berhasil diupdate.' : 'Sumber Dana berhasil ditambahkan.', 'success')
+        setSuccessMessage(editingItem ? 'Sumber Dana berhasil diupdate.' : 'Sumber Dana berhasil ditambahkan.')
         closeModal()
         router.refresh()
       }
     } catch (err: any) {
-      showToast(err.message || 'Terjadi kesalahan', 'error')
+      setError(err.message || 'Terjadi kesalahan')
     } finally {
       setIsPending(false)
     }
@@ -98,7 +103,28 @@ export function CashSourceList({
       if (result?.error) {
         showToast(result.error, 'error')
       } else {
-        showToast(`Sumber Dana berhasil ${item.is_active ? 'dinonaktifkan' : 'diaktifkan'}.`, 'success')
+        setSuccessMessage(`Sumber Dana berhasil ${item.is_active ? 'dinonaktifkan' : 'diaktifkan'}.`)
+        router.refresh()
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Terjadi kesalahan', 'error')
+    } finally {
+      setIsPending(false)
+    }
+  }
+
+  async function handleDelete(item: CashSourceAdminView) {
+    if (!window.confirm(`PERINGATAN: Yakin ingin MENGHAPUS PERMANEN Sumber Dana "${item.name}"? Ini tidak dapat dibatalkan.`)) {
+      return
+    }
+    
+    setIsPending(true)
+    try {
+      const result = await deleteCashSourceAction(item.id)
+      if (result?.error) {
+        showToast(result.error, 'error')
+      } else {
+        setSuccessMessage('Sumber Dana berhasil dihapus permanen.')
         router.refresh()
       }
     } catch (err: any) {
@@ -110,6 +136,12 @@ export function CashSourceList({
 
   return (
     <div className="space-y-4">
+      <SuccessModal 
+        isOpen={!!successMessage} 
+        message={successMessage} 
+        onClose={() => setSuccessMessage('')} 
+      />
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div className="flex gap-3 w-full sm:w-auto">
           <input 
@@ -198,9 +230,16 @@ export function CashSourceList({
                     <button 
                       onClick={() => toggleStatus(item)}
                       disabled={isPending}
-                      className={item.is_active ? "text-red-600 hover:text-red-800 transition-colors disabled:opacity-50" : "text-green-600 hover:text-green-800 transition-colors disabled:opacity-50"}
+                      className={item.is_active ? "text-amber-600 hover:text-amber-800 transition-colors disabled:opacity-50" : "text-green-600 hover:text-green-800 transition-colors disabled:opacity-50"}
                     >
                       {item.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(item)}
+                      disabled={isPending}
+                      className="text-red-600 hover:text-red-800 transition-colors disabled:opacity-50"
+                    >
+                      Hapus
                     </button>
                   </td>
                 </tr>
@@ -221,6 +260,12 @@ export function CashSourceList({
                 ✕
               </button>
             </div>
+            
+            {error && (
+              <div className="mx-6 mt-4 p-3 bg-red-50 text-red-600 rounded-md text-sm border border-red-100">
+                {error}
+              </div>
+            )}
             
             <form action={handleAction} className="p-6">
               <div className="space-y-4">
@@ -316,16 +361,17 @@ export function CashSourceList({
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={isPending}
+                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={isPending}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center min-w-[120px]"
                 >
-                  {isPending ? 'Menyimpan...' : 'Simpan'}
+                  {isPending ? <><Spinner className="mr-2" /> Menyimpan...</> : 'Simpan'}
                 </button>
               </div>
             </form>

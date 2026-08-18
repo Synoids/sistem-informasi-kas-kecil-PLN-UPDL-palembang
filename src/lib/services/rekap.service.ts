@@ -21,7 +21,10 @@ export interface ReportData {
   openingBalance: number
   totalIn: number
   totalOut: number
+  totalBelanja: number
+  totalSweep: number
   endingBalance: number
+  isClosed: boolean
   rows: ReportRow[]
 }
 
@@ -58,12 +61,25 @@ export async function getRekapReport(
     targetSourceIds = [cashSourceId]
   }
 
+  // Get period status
+  const { data: periodMatch } = await supabase.from('accounting_periods')
+    .select('status')
+    .gte('start_date', startDateStr)
+    .lte('start_date', endDateStr)
+    .limit(1)
+    .maybeSingle()
+  
+  const isClosed = (periodMatch as any)?.status === 'CLOSED'
+
   if (targetSourceIds.length === 0) {
     return {
       openingBalance: 0,
       totalIn: 0,
       totalOut: 0,
+      totalBelanja: 0,
+      totalSweep: 0,
       endingBalance: 0,
+      isClosed,
       rows: []
     }
   }
@@ -221,6 +237,8 @@ export async function getRekapReport(
   let currentBalance = openingBalance
   let totalIn = 0
   let totalOut = 0
+  let totalBelanja = 0
+  let totalSweep = 0
 
   for (let i = 0; i < reportRows.length; i++) {
     const row = reportRows[i]
@@ -230,6 +248,13 @@ export async function getRekapReport(
     totalIn += row.inAmount
     totalOut += row.outAmount
     
+    if (row.type === 'TRANSACTION') {
+      totalBelanja += row.outAmount
+    }
+    if (row.type === 'ALLOCATION_OUT' && (row.description.toLowerCase().includes('sweep') || row.description.toLowerCase().includes('tutup bulan') || row.description.toLowerCase().includes('kembali'))) {
+      totalSweep += row.outAmount
+    }
+    
     reportRows[i].balance = currentBalance
   }
 
@@ -237,7 +262,10 @@ export async function getRekapReport(
     openingBalance,
     totalIn,
     totalOut,
+    totalBelanja,
+    totalSweep,
     endingBalance: currentBalance,
+    isClosed,
     rows: reportRows
   }
 }
@@ -339,7 +367,7 @@ export async function getConsolidatedMatrixReport(month: number, year: number): 
     supabase.from('allocations').select('amount, source_id').lt('date', startDateStr),
     supabase.from('transactions').select('amount, cash_source_id').lt('date', startDateStr),
     supabase.from('allocations').select('amount, destination_id').gte('date', startDateStr).lte('date', endDateStr),
-    supabase.from('allocations').select('amount, source_id').gte('date', startDateStr).lte('date', endDateStr)
+    supabase.from('allocations').select('amount, source_id, description').gte('date', startDateStr).lte('date', endDateStr)
   ])
 
   const allocInPast: any[] = allocInPastRes.data || []
@@ -367,7 +395,7 @@ export async function getConsolidatedMatrixReport(month: number, year: number): 
     let allocOutThisMonth = 0
     
     allocInPeriod.filter(a => a.destination_id === source.id).forEach(a => allocInThisMonth += Number(a.amount || 0))
-    allocOutPeriod.filter(a => a.source_id === source.id).forEach(a => allocOutThisMonth += Number(a.amount || 0))
+    allocOutPeriod.filter(a => a.source_id === source.id && a.description !== 'Sweep Closing Return').forEach(a => allocOutThisMonth += Number(a.amount || 0))
 
     const jumlahUang = openingBalance + allocInThisMonth - allocOutThisMonth
     
@@ -401,8 +429,29 @@ export async function getConsolidatedMatrixReport(month: number, year: number): 
   // We should enforce it if the template assumes all transactions have a division.
   // Actually, standard behavior is they all should have divisions.
 
-  const modalAwal = cashSources.find(c => c.name.toLowerCase().includes('modal awal') || c.name.toLowerCase().includes('sistem'))
-  const paguAmount = modalAwal ? allocOutPeriod.filter(a => a.source_id === modalAwal.id).reduce((sum, a) => sum + Number(a.amount || 0), 0) : 0
+  const { data: periodMatch } = await supabase.from('accounting_periods')
+    .select('id')
+    .gte('start_date', startDateStr)
+    .lte('start_date', endDateStr)
+    .limit(1)
+    .maybeSingle()
+
+  let paguAmount = 0
+  if (periodMatch) {
+    const { data: fundingAllocs } = await supabase.from('allocations')
+      .select('amount')
+      .eq('period_id', (periodMatch as any).id)
+      .eq('description', 'Pendanaan Periode')
+    
+    if (fundingAllocs) {
+      paguAmount = fundingAllocs.reduce((sum, a) => sum + Number((a as any).amount), 0)
+    }
+  }
+
+  if (paguAmount === 0) {
+    const modalAwal = cashSources.find(c => c.name.toLowerCase().includes('modal awal') || c.name.toLowerCase().includes('sistem'))
+    paguAmount = modalAwal ? allocOutPeriod.filter(a => a.source_id === modalAwal.id).reduce((sum, a) => sum + Number(a.amount || 0), 0) : 0
+  }
 
   return {
     month,
