@@ -18,10 +18,11 @@ export default async function RekapPage(props: {
 }) {
   const searchParams = await props.searchParams
   
-  const profile = await getCurrentProfile()
+  const [profile, cashSources] = await Promise.all([
+    getCurrentProfile(),
+    getAccessibleCashSources()
+  ])
   const isAdmin = profile?.role === 'ADMIN'
-
-  const cashSources = await getAccessibleCashSources()
   
   if (cashSources.length === 0) {
     return (

@@ -3,8 +3,10 @@ import { getMasterData } from '@/lib/services/dashboard.service'
 import { TransactionForm } from './components/TransactionForm'
 
 export default async function InputTransaksiPage() {
-  const cashSources = await getAccessibleCashSources()
-  const masterData = await getMasterData()
+  const [cashSources, masterData] = await Promise.all([
+    getAccessibleCashSources(),
+    getMasterData()
+  ])
 
   return (
     <div className="space-y-6">

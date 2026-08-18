@@ -20,9 +20,13 @@ export default async function RiwayatTransaksiPage({
 
   const resolvedParams = await searchParams
 
-  const cashSources = await getAccessibleCashSources()
-  const masterData = await getMasterData()
-  const allPeriods = (await getAllPeriods() || []) as any[]
+  const [cashSources, masterData, rawPeriods] = await Promise.all([
+    getAccessibleCashSources(),
+    getMasterData(),
+    getAllPeriods()
+  ])
+  
+  const allPeriods = (rawPeriods || []) as any[]
   const activePeriod = allPeriods.find((p: any) => p.status === 'OPEN')
 
   // Default period is the active period, or the first one if there are no active ones.

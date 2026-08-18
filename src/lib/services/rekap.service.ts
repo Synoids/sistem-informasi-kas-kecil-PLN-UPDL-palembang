@@ -41,15 +41,24 @@ export async function getRekapReport(
   const endDate = new Date(year, month, 0)
   const endDateStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`
 
-  // 2. Validate Authorization
-  const accessibleSources = await getAccessibleCashSources()
+  // 2. Fetch Initial Data Concurrently
+  const [accessibleSources, profile, { data: periodMatch }] = await Promise.all([
+    getAccessibleCashSources(),
+    getCurrentProfile(),
+    supabase.from('accounting_periods')
+      .select('status')
+      .gte('start_date', startDateStr)
+      .lte('start_date', endDateStr)
+      .limit(1)
+      .maybeSingle()
+  ])
+
   const accessibleIds = accessibleSources.map((s) => s.cash_source_id)
 
   const isConsolidated = cashSourceId === 'ALL'
   let targetSourceIds: string[] = []
 
   if (isConsolidated) {
-    const profile = await getCurrentProfile()
     if (profile?.role !== 'ADMIN') {
       throw new Error('Anda tidak memiliki akses ke laporan konsolidasi.')
     }
@@ -61,14 +70,6 @@ export async function getRekapReport(
     targetSourceIds = [cashSourceId]
   }
 
-  // Get period status
-  const { data: periodMatch } = await supabase.from('accounting_periods')
-    .select('status')
-    .gte('start_date', startDateStr)
-    .lte('start_date', endDateStr)
-    .limit(1)
-    .maybeSingle()
-  
   const isClosed = (periodMatch as any)?.status === 'CLOSED'
 
   if (targetSourceIds.length === 0) {
