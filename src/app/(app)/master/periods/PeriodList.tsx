@@ -7,6 +7,16 @@ import { openPeriodAction, closePeriodAction, fundPeriodActionServer, getClosing
 import { SuccessModal } from '@/app/components/SuccessModal'
 import { Spinner } from '@/app/components/Spinner'
 
+function formatDate(dateStr: string): string {
+  if (!dateStr) return '—'
+  const date = new Date(dateStr)
+  const day = date.getDate().toString().padStart(2, '0')
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des']
+  const month = months[date.getMonth()]
+  const year = date.getFullYear()
+  return `${day} ${month} ${year}`
+}
+
 export function PeriodList({ periods }: { periods: Period[] }) {
   const [isOpening, setIsOpening] = useState(false)
   const [fundingAmount, setFundingAmount] = useState('')
@@ -149,8 +159,8 @@ export function PeriodList({ periods }: { periods: Period[] }) {
                   <h3 className="text-xl font-bold text-slate-800">{activePeriod.name}</h3>
                   <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">OPEN</span>
                 </div>
-                <p className="text-slate-500 text-sm">
-                  {new Date(activePeriod.start_date).toLocaleDateString('id-ID')} - {new Date(activePeriod.end_date).toLocaleDateString('id-ID')}
+                <p className="mt-1 text-sm text-slate-500">
+                  {formatDate(activePeriod.start_date)} - {formatDate(activePeriod.end_date)}
                 </p>
               </div>
               
@@ -219,8 +229,10 @@ export function PeriodList({ periods }: { periods: Period[] }) {
               {historicalPeriods.map(p => (
                 <tr key={p.id}>
                   <td className="px-6 py-4 font-medium text-slate-800">{p.name}</td>
-                  <td className="px-6 py-4 text-slate-600">
-                    {new Date(p.start_date).toLocaleDateString('id-ID')} - {new Date(p.end_date).toLocaleDateString('id-ID')}
+                  <td className="px-6 py-4">
+                    <div className="text-xs text-slate-500">
+                      {formatDate(p.start_date)} - {formatDate(p.end_date)}
+                    </div>
                   </td>
                   <td className="px-6 py-4">
                     <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">

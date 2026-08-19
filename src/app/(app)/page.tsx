@@ -15,11 +15,13 @@ function formatRupiah(amount: number): string {
 }
 
 function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  })
+  if (!dateStr) return '—'
+  const date = new Date(dateStr)
+  const day = date.getDate().toString().padStart(2, '0')
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des']
+  const month = months[date.getMonth()]
+  const year = date.getFullYear()
+  return `${day} ${month} ${year}`
 }
 
 export default async function DashboardPage() {
