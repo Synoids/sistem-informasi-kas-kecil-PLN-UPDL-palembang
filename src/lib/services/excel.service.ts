@@ -86,9 +86,16 @@ export async function generateExcelReport(dto: ConsolidatedMatrixReportDTO): Pro
   let currentRow = 5
   const startRow = 5
 
-  // Map Data (Categories, Divisions, CashHolders run in parallel)
-  const hardcodedNames = ['Uang Cash', 'Fanhar', 'Tiara', 'Didik', 'Rezky']
-  const maxRows = Math.max(dto.categories.length, hardcodedNames.length, 2)
+  // Sort cash holders: "Utama" / "Cash" first
+  const sortedHolders = [...dto.cashHolders].sort((a, b) => {
+    const aMain = a.cashSourceName.toLowerCase().includes('utama') || a.cashSourceName.toLowerCase().includes('cash')
+    const bMain = b.cashSourceName.toLowerCase().includes('utama') || b.cashSourceName.toLowerCase().includes('cash')
+    if (aMain && !bMain) return -1
+    if (!aMain && bMain) return 1
+    return 0
+  })
+
+  const maxRows = Math.max(dto.categories.length, sortedHolders.length, 2)
 
   for (let i = 0; i < maxRows; i++) {
     const row = sheet.getRow(currentRow)
@@ -112,45 +119,27 @@ export async function generateExcelReport(dto: ConsolidatedMatrixReportDTO): Pro
       })
     }
 
-    // Cash Holder Block - HARDCODED mapping
-    const holderName = hardcodedNames[i]
-    if (holderName) {
-      let mappedHolder = null
-      if (holderName === 'Uang Cash') {
-        mappedHolder = dto.cashHolders.find(h => 
-          h.cashSourceName.toLowerCase().includes('kas utama') || 
-          h.cashSourceName.toLowerCase().includes('uang cash')
-        )
-      } else {
-        mappedHolder = dto.cashHolders.find(h => 
-          h.cashSourceName.toLowerCase().includes(holderName.toLowerCase()) ||
-          (holderName === 'Rezky' && h.cashSourceName.toLowerCase().includes('kiki'))
-        )
-      }
+    // Cash Holder Block - DYNAMIC mapping
+    const holder = sortedHolders[i]
+    if (holder) {
+      row.getCell(11).value = holder.cashSourceName
+      row.getCell(12).value = holder.jumlahUang || 0
+      row.getCell(13).value = holder.realisasi || 0
+      row.getCell(14).value = holder.sisa || 0
 
-      row.getCell(11).value = holderName
-      row.getCell(12).value = mappedHolder ? mappedHolder.jumlahUang : 0
-      row.getCell(13).value = mappedHolder ? mappedHolder.realisasi : 0
-      row.getCell(14).value = mappedHolder ? mappedHolder.sisa : 0
-
-      if (i === 0) {
-        // First holder is usually "Uang Cash"
-        row.getCell(11).fill = fillOrange
-        row.getCell(12).fill = fillOrange
-        row.getCell(13).fill = fillOrange
-        row.getCell(14).fill = fillOrange
-      } else {
-        row.getCell(11).fill = fillGreen
-        row.getCell(12).fill = fillGreen
-        row.getCell(13).fill = fillGreen
-        row.getCell(14).fill = fillGreen
-      }
+      const isMain = holder.cashSourceName.toLowerCase().includes('utama') || holder.cashSourceName.toLowerCase().includes('cash')
+      const fill = isMain ? fillOrange : fillGreen
+      
+      row.getCell(11).fill = fill
+      row.getCell(12).fill = fill
+      row.getCell(13).fill = fill
+      row.getCell(14).fill = fill
     }
 
     // Apply borders
     [1, 2, 3, 4].forEach(c => row.getCell(c).border = borderThin)
     divCols.forEach(c => row.getCell(c).border = borderThin)
-    if (i < hardcodedNames.length) {
+    if (i < sortedHolders.length) {
       [11, 12, 13, 14].forEach(c => row.getCell(c).border = borderThin)
     }
 
@@ -186,7 +175,7 @@ export async function generateExcelReport(dto: ConsolidatedMatrixReportDTO): Pro
   })
   
   totalRow.getCell(11).value = 'Total'
-  totalRow.getCell(12).value = { formula: `SUM(L${startRow}:L${startRow + hardcodedNames.length - 1})` }
+  totalRow.getCell(12).value = { formula: `SUM(L${startRow}:L${startRow + sortedHolders.length - 1})` }
 
   // Total styling
   const totalCols = [1, 3, 4, ...divCols, 11, 12, 13, 14]
