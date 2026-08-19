@@ -87,7 +87,7 @@ export async function generateExcelReport(dto: ConsolidatedMatrixReportDTO): Pro
   const startRow = 5
 
   // Map Data (Categories, Divisions, CashHolders run in parallel)
-  const hardcodedNames = ['Uang Cash', 'Fanhar', 'Tiara', 'Didik', 'Rezky']
+  const hardcodedNames = ['Uang Cash', 'Fanhar', 'Tiara', 'Didik', 'Kiki']
   const maxRows = Math.max(dto.categories.length, hardcodedNames.length, 2)
 
   for (let i = 0; i < maxRows; i++) {
