@@ -176,7 +176,7 @@ export async function generateExcelReport(dto: ConsolidatedMatrixReportDTO): Pro
   divCols.forEach(c => {
     const colLetter = sheet.getColumn(c).letter
     leftTotalRow.getCell(c).value = { formula: `SUM(${colLetter}${startRow}:${colLetter}${leftTotalRowIndex-1})` }
-  })
+  });
   
   [1, 3, 4, ...divCols].forEach(c => {
     const cell = leftTotalRow.getCell(c)
@@ -191,7 +191,7 @@ export async function generateExcelReport(dto: ConsolidatedMatrixReportDTO): Pro
   const rightTotalRowIndex = startRow + rightMaxRows
   const rightTotalRow = sheet.getRow(rightTotalRowIndex)
   rightTotalRow.getCell(11).value = 'Total'
-  rightTotalRow.getCell(12).value = { formula: `SUM(L${startRow}:L${rightTotalRowIndex-1})` }
+  rightTotalRow.getCell(12).value = { formula: `SUM(L${startRow}:L${rightTotalRowIndex-1})` };
   
   [11, 12, 13, 14].forEach(c => {
     const cell = rightTotalRow.getCell(c)
@@ -215,7 +215,7 @@ export async function generateExcelReport(dto: ConsolidatedMatrixReportDTO): Pro
   const sumFormula = divLetters.map(l => `${l}${leftTotalRowIndex}`).join('+')
   divCols.forEach(c => {
     leftSisaRow.getCell(c).value = { formula: sumFormula } 
-  })
+  });
 
   [1, 3, ...divCols].forEach(c => {
     const cell = leftSisaRow.getCell(c)
@@ -239,7 +239,7 @@ export async function generateExcelReport(dto: ConsolidatedMatrixReportDTO): Pro
   rightSisaRow.getCell(11).value = 'Selisih Uang Cash'
   rightSisaRow.getCell(12).value = { formula: `L${rightTotalRowIndex}-C${leftTotalRowIndex}` }
   rightSisaRow.getCell(13).value = { formula: `L${rightTotalRowIndex}-C${leftTotalRowIndex}` }
-  rightSisaRow.getCell(14).value = { formula: `L${rightTotalRowIndex}-C${leftTotalRowIndex}` }
+  rightSisaRow.getCell(14).value = { formula: `L${rightTotalRowIndex}-C${leftTotalRowIndex}` };
 
   [11, 12, 13, 14].forEach(c => {
     const cell = rightSisaRow.getCell(c)
