@@ -117,9 +117,14 @@ export async function generateExcelReport(dto: ConsolidatedMatrixReportDTO): Pro
     if (holderName) {
       let mappedHolder = null
       if (holderName === 'Uang Cash') {
-        mappedHolder = dto.cashHolders.find(h => h.cashSourceName === 'Kas Utama' || h.cashSourceName === 'Uang Cash')
+        mappedHolder = dto.cashHolders.find(h => 
+          h.cashSourceName.toLowerCase().includes('kas utama') || 
+          h.cashSourceName.toLowerCase().includes('uang cash')
+        )
       } else {
-        mappedHolder = dto.cashHolders.find(h => h.cashSourceName === holderName)
+        mappedHolder = dto.cashHolders.find(h => 
+          h.cashSourceName.toLowerCase().includes(holderName.toLowerCase())
+        )
       }
 
       row.getCell(11).value = holderName
