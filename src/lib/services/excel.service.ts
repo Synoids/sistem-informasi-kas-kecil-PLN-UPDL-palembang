@@ -95,32 +95,45 @@ export async function generateExcelReport(dto: ConsolidatedMatrixReportDTO): Pro
     return 0
   })
 
-  const maxRows = Math.max(dto.categories.length, sortedHolders.length, 2)
+  const leftMaxRows = Math.max(dto.categories.length, 1)
+  const rightMaxRows = Math.max(sortedHolders.length, 1)
 
-  for (let i = 0; i < maxRows; i++) {
-    const row = sheet.getRow(currentRow)
+  // ----------------------------------------------------
+  // LEFT SIDE: Categories
+  // ----------------------------------------------------
+  for (let i = 0; i < leftMaxRows; i++) {
+    const row = sheet.getRow(startRow + i)
     const cat = dto.categories[i]
 
-    // Category Block
     if (cat) {
       row.getCell(1).value = i + 1
       row.getCell(2).value = cat.categoryName
-      
-      // Pagu Anggaran only on first row of category if we merge later, but let's just put it on first row and merge.
       if (i === 0) row.getCell(3).value = dto.paguAmount || 0
-      
       row.getCell(4).value = cat.totalAmount
       
-      // Division Block - HARDCODED mapping
       hardcodedDivisions.forEach((divName, j) => {
         const divDto = dto.divisions.find(d => d.name === divName)
         const val = divDto && cat.divisions[divDto.id] ? cat.divisions[divDto.id] : 0
         row.getCell(divCols[j]).value = val
       })
     }
+    
+    // Apply borders & formats
+    [1, 2, 3, 4].forEach(c => row.getCell(c).border = borderThin)
+    divCols.forEach(c => row.getCell(c).border = borderThin)
+    
+    row.getCell(3).numFmt = numFormat
+    row.getCell(4).numFmt = numFormat
+    divCols.forEach(c => row.getCell(c).numFmt = numFormat)
+  }
 
-    // Cash Holder Block - DYNAMIC mapping
+  // ----------------------------------------------------
+  // RIGHT SIDE: Cash Holders
+  // ----------------------------------------------------
+  for (let i = 0; i < rightMaxRows; i++) {
+    const row = sheet.getRow(startRow + i)
     const holder = sortedHolders[i]
+
     if (holder) {
       row.getCell(11).value = holder.cashSourceName
       row.getCell(12).value = holder.jumlahUang || 0
@@ -136,20 +149,11 @@ export async function generateExcelReport(dto: ConsolidatedMatrixReportDTO): Pro
       row.getCell(14).fill = fill
     }
 
-    // Apply borders
-    [1, 2, 3, 4].forEach(c => row.getCell(c).border = borderThin);
-    divCols.forEach(c => row.getCell(c).border = borderThin);
-    [11, 12, 13, 14].forEach(c => row.getCell(c).border = borderThin);
-
-    // Apply number formats
-    row.getCell(3).numFmt = numFormat
-    row.getCell(4).numFmt = numFormat
-    divCols.forEach(c => row.getCell(c).numFmt = numFormat)
+    // Apply borders & formats
+    [11, 12, 13, 14].forEach(c => row.getCell(c).border = borderThin)
     row.getCell(12).numFmt = noFormat
     row.getCell(13).numFmt = noFormat
     row.getCell(14).numFmt = noFormat
-    
-    currentRow++
   }
 
   // Merge Pagu Anggaran
@@ -159,75 +163,96 @@ export async function generateExcelReport(dto: ConsolidatedMatrixReportDTO): Pro
     paguCell.alignment = { vertical: 'middle', horizontal: 'center' }
   }
 
-  // TOTAL ROW
-  const totalRowIndex = currentRow
-  const totalRow = sheet.getRow(totalRowIndex)
-  sheet.mergeCells(`A${totalRowIndex}:B${totalRowIndex}`)
-  totalRow.getCell(1).value = 'TOTAL'
-  totalRow.getCell(3).value = { formula: `C${startRow}` }
-  totalRow.getCell(4).value = { formula: `SUM(D${startRow}:D${totalRowIndex-1})` }
-  
+  // ----------------------------------------------------
+  // TOTAL ROWS
+  // ----------------------------------------------------
+  // Left Total
+  const leftTotalRowIndex = startRow + leftMaxRows
+  const leftTotalRow = sheet.getRow(leftTotalRowIndex)
+  sheet.mergeCells(`A${leftTotalRowIndex}:B${leftTotalRowIndex}`)
+  leftTotalRow.getCell(1).value = 'TOTAL'
+  leftTotalRow.getCell(3).value = { formula: `C${startRow}` }
+  leftTotalRow.getCell(4).value = { formula: `SUM(D${startRow}:D${leftTotalRowIndex-1})` }
   divCols.forEach(c => {
     const colLetter = sheet.getColumn(c).letter
-    totalRow.getCell(c).value = { formula: `SUM(${colLetter}${startRow}:${colLetter}${totalRowIndex-1})` }
+    leftTotalRow.getCell(c).value = { formula: `SUM(${colLetter}${startRow}:${colLetter}${leftTotalRowIndex-1})` }
   })
   
-  totalRow.getCell(11).value = 'Total'
-  totalRow.getCell(12).value = { formula: `SUM(L${startRow}:L${startRow + sortedHolders.length - 1})` }
-
-  // Total styling
-  const totalCols = [1, 3, 4, ...divCols, 11, 12, 13, 14]
-  totalCols.forEach(c => {
-    const cell = totalRow.getCell(c)
+  [1, 3, 4, ...divCols].forEach(c => {
+    const cell = leftTotalRow.getCell(c)
     cell.fill = fillGrey
     cell.border = borderThin
     cell.font = { bold: true }
     if (c === 3 || c === 4 || divCols.includes(c)) cell.numFmt = numFormat
+  })
+  leftTotalRow.getCell(1).alignment = { horizontal: 'center' }
+
+  // Right Total
+  const rightTotalRowIndex = startRow + rightMaxRows
+  const rightTotalRow = sheet.getRow(rightTotalRowIndex)
+  rightTotalRow.getCell(11).value = 'Total'
+  rightTotalRow.getCell(12).value = { formula: `SUM(L${startRow}:L${rightTotalRowIndex-1})` }
+  
+  [11, 12, 13, 14].forEach(c => {
+    const cell = rightTotalRow.getCell(c)
+    cell.fill = fillGrey
+    cell.border = borderThin
+    cell.font = { bold: true }
     if (c >= 12 && c <= 14) cell.numFmt = noFormat
   })
-  totalRow.getCell(1).alignment = { horizontal: 'center' }
 
-  // SISA CASH ROW
-  const sisaRowIndex = totalRowIndex + 1
-  const sisaRow = sheet.getRow(sisaRowIndex)
-  sheet.mergeCells(`A${sisaRowIndex}:B${sisaRowIndex}`)
-  sisaRow.getCell(1).value = 'SISA CASH'
-  sisaRow.getCell(3).value = { formula: `C${totalRowIndex}-D${totalRowIndex}` }
+  // ----------------------------------------------------
+  // SISA CASH ROWS
+  // ----------------------------------------------------
+  // Left Sisa
+  const leftSisaRowIndex = leftTotalRowIndex + 1
+  const leftSisaRow = sheet.getRow(leftSisaRowIndex)
+  sheet.mergeCells(`A${leftSisaRowIndex}:B${leftSisaRowIndex}`)
+  leftSisaRow.getCell(1).value = 'SISA CASH'
+  leftSisaRow.getCell(3).value = { formula: `C${leftTotalRowIndex}-D${leftTotalRowIndex}` }
   
   const divLetters = divCols.map(c => sheet.getColumn(c).letter)
-  const sumFormula = divLetters.map(l => `${l}${totalRowIndex}`).join('+')
+  const sumFormula = divLetters.map(l => `${l}${leftTotalRowIndex}`).join('+')
   divCols.forEach(c => {
-    sisaRow.getCell(c).value = { formula: sumFormula } // Following old template which sums F10:I10
+    leftSisaRow.getCell(c).value = { formula: sumFormula } 
   })
 
-  sisaRow.getCell(11).value = 'Selisih Uang Cash'
-  sisaRow.getCell(12).value = { formula: `L${totalRowIndex}-C${totalRowIndex}` }
-  sisaRow.getCell(13).value = { formula: `L${totalRowIndex}-C${totalRowIndex}` }
-  sisaRow.getCell(14).value = { formula: `L${totalRowIndex}-C${totalRowIndex}` }
-
-  // Sisa styling
-  const sisaCols = [1, 3, ...divCols, 11, 12, 13, 14]
-  sisaCols.forEach(c => {
-    const cell = sisaRow.getCell(c)
+  [1, 3, ...divCols].forEach(c => {
+    const cell = leftSisaRow.getCell(c)
     cell.fill = fillGrey
     cell.border = borderThin
     cell.font = { bold: true }
     if (c === 3 || divCols.includes(c)) cell.numFmt = numFormat
-    if (c >= 12 && c <= 14) cell.numFmt = noFormat
   })
-  sisaRow.getCell(1).alignment = { horizontal: 'left' }
-  
-  // Merge division columns in Sisa Cash row
-  sheet.mergeCells(`F${sisaRowIndex}:I${sisaRowIndex}`)
-  
-  // Extra row for F12 equivalent
-  const extraRowIndex = sisaRowIndex + 1
-  const extraRow = sheet.getRow(extraRowIndex)
-  extraRow.getCell(6).value = { formula: `C${totalRowIndex}-F${sisaRowIndex}` }
-  extraRow.getCell(6).numFmt = numFormat
+  leftSisaRow.getCell(1).alignment = { horizontal: 'left' }
+  sheet.mergeCells(`F${leftSisaRowIndex}:I${leftSisaRowIndex}`)
 
+  // Extra row for F12 equivalent (Below left sisa)
+  const leftExtraRowIndex = leftSisaRowIndex + 1
+  const leftExtraRow = sheet.getRow(leftExtraRowIndex)
+  leftExtraRow.getCell(6).value = { formula: `C${leftTotalRowIndex}-F${leftSisaRowIndex}` }
+  leftExtraRow.getCell(6).numFmt = numFormat
+
+  // Right Sisa
+  const rightSisaRowIndex = rightTotalRowIndex + 1
+  const rightSisaRow = sheet.getRow(rightSisaRowIndex)
+  rightSisaRow.getCell(11).value = 'Selisih Uang Cash'
+  rightSisaRow.getCell(12).value = { formula: `L${rightTotalRowIndex}-C${leftTotalRowIndex}` }
+  rightSisaRow.getCell(13).value = { formula: `L${rightTotalRowIndex}-C${leftTotalRowIndex}` }
+  rightSisaRow.getCell(14).value = { formula: `L${rightTotalRowIndex}-C${leftTotalRowIndex}` }
+
+  [11, 12, 13, 14].forEach(c => {
+    const cell = rightSisaRow.getCell(c)
+    cell.fill = fillGrey
+    cell.border = borderThin
+    cell.font = { bold: true }
+    cell.numFmt = noFormat
+  })
+
+  // ----------------------------------------------------
   // TERBILANG ROW
-  const terbilangRowIndex = sisaRowIndex + 3
+  // ----------------------------------------------------
+  const terbilangRowIndex = Math.max(leftExtraRowIndex, rightSisaRowIndex) + 3
   const terbilangRow = sheet.getRow(terbilangRowIndex)
   terbilangRow.getCell(1).value = 'Terbilang'
   
