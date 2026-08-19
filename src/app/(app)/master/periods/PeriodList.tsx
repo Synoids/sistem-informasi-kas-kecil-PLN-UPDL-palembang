@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Period } from '@/lib/services/period.service'
+import { useRouter } from 'next/navigation'
 import { openPeriodAction, closePeriodAction, fundPeriodActionServer, getClosingWarningsAction } from './actions'
 import { SuccessModal } from '@/app/components/SuccessModal'
 import { Spinner } from '@/app/components/Spinner'
@@ -12,6 +13,7 @@ export function PeriodList({ periods }: { periods: Period[] }) {
   const [error, setError] = useState<string | null>(null)
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState('')
+  const router = useRouter()
 
   const activePeriod = periods.find(p => p.status === 'OPEN')
   const historicalPeriods = periods.filter(p => p.status === 'CLOSED')
@@ -26,6 +28,7 @@ export function PeriodList({ periods }: { periods: Period[] }) {
     } else {
       setIsOpening(false)
       setSuccessMessage('Periode berhasil dibuka!')
+      router.refresh()
     }
   }
 
@@ -39,6 +42,7 @@ export function PeriodList({ periods }: { periods: Period[] }) {
     } else {
       setFundingAmount('')
       setSuccessMessage('Pendanaan berhasil ditambahkan!')
+      router.refresh()
     }
     setLoadingId(null)
   }
@@ -69,7 +73,8 @@ export function PeriodList({ periods }: { periods: Period[] }) {
       if (res.error) {
         setError(res.error)
       } else {
-        setSuccessMessage('Periode berhasil ditutup!')
+        setSuccessMessage('Periode berhasil ditutup dan sisa dana telah di-sweep!')
+        router.refresh()
       }
     } catch (err: any) {
       setError('Gagal memeriksa data periode')

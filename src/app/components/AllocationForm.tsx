@@ -75,6 +75,7 @@ export function AllocationForm({ cashSources }: AllocationFormProps) {
       } else {
         setSuccessMessage('Alokasi berhasil disimpan!')
         setAmountStr('')
+        router.refresh()
       }
     } catch (err: any) {
       setError(err.message || 'Terjadi kesalahan')

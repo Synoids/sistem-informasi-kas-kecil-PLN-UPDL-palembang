@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { submitTransaction, editTransaction } from '../actions'
 import { showToast } from '@/app/components/Toast'
 import { IndonesianDatePicker } from '@/app/components/IndonesianDatePicker'
@@ -62,6 +63,7 @@ export function TransactionForm({
   periodStatus = 'OPEN',
   onSuccess,
 }: TransactionFormProps) {
+  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState('')
@@ -109,6 +111,7 @@ export function TransactionForm({
           formRef.current?.reset()
           setAmountStr('')
         }
+        router.refresh()
         onSuccess?.()
       } else {
         setError(result.error?.message || 'Gagal menyimpan transaksi.')
