@@ -139,9 +139,7 @@ export async function generateExcelReport(dto: ConsolidatedMatrixReportDTO): Pro
     // Apply borders
     [1, 2, 3, 4].forEach(c => row.getCell(c).border = borderThin)
     divCols.forEach(c => row.getCell(c).border = borderThin)
-    if (i < sortedHolders.length) {
-      [11, 12, 13, 14].forEach(c => row.getCell(c).border = borderThin)
-    }
+    [11, 12, 13, 14].forEach(c => row.getCell(c).border = borderThin)
 
     // Apply number formats
     row.getCell(3).numFmt = numFormat

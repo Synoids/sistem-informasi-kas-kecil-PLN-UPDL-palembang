@@ -378,8 +378,9 @@ export async function getConsolidatedMatrixReport(month: number, year: number): 
   const allocOutPeriod: any[] = allocOutPeriodRes.data || []
 
   for (const source of cashSources) {
-    // Abaikan akun virtual "Modal Awal / Sistem" dari laporan Excel konsolidasi
-    if (source.name.toLowerCase().includes('modal awal') || source.name.toLowerCase().includes('sistem')) {
+    const nameLow = source.name.toLowerCase()
+    // Abaikan akun virtual "Modal Awal / Sistem / Pusat / Bank" dari laporan Excel konsolidasi
+    if (nameLow.includes('modal awal') || nameLow.includes('sistem') || nameLow.includes('pusat') || nameLow.includes('bank')) {
       continue
     }
 
