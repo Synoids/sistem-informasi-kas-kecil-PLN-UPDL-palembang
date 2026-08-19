@@ -57,10 +57,10 @@ export async function fetchTransactions(
     const numVal = Number(search.replace(/\D/g, ''))
 
     const { data: catMatches } = await supabase.from('categories').select('id').ilike('name', `%${search}%`)
-    const catIds = catMatches?.map(c => c.id).join(',') || ''
+    const catIds = catMatches?.map((c: any) => c.id).join(',') || ''
 
     const { data: divMatches } = await supabase.from('divisions').select('id').ilike('name', `%${search}%`)
-    const divIds = divMatches?.map(d => d.id).join(',') || ''
+    const divIds = divMatches?.map((d: any) => d.id).join(',') || ''
 
     const orParts = [
       `recipient_name.ilike.%${search}%`,
