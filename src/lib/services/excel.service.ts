@@ -192,6 +192,8 @@ export async function generateExcelReport(dto: ConsolidatedMatrixReportDTO): Pro
   const rightTotalRow = sheet.getRow(rightTotalRowIndex)
   rightTotalRow.getCell(11).value = 'Total'
   rightTotalRow.getCell(12).value = { formula: `SUM(L${startRow}:L${rightTotalRowIndex-1})` };
+  rightTotalRow.getCell(13).value = { formula: `SUM(M${startRow}:M${rightTotalRowIndex-1})` };
+  rightTotalRow.getCell(14).value = { formula: `SUM(N${startRow}:N${rightTotalRowIndex-1})` };
   
   [11, 12, 13, 14].forEach(c => {
     const cell = rightTotalRow.getCell(c)
