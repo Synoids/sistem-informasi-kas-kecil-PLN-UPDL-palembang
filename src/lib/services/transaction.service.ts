@@ -53,7 +53,25 @@ export async function fetchTransactions(
     query = query.eq('receipt_status', receiptStatus)
   }
   if (search) {
-    query = query.or(`recipient_name.ilike.%${search}%,description.ilike.%${search}%`)
+    const isNum = !isNaN(Number(search.replace(/\D/g, ''))) && search.replace(/\D/g, '').length > 0
+    const numVal = Number(search.replace(/\D/g, ''))
+
+    const { data: catMatches } = await supabase.from('categories').select('id').ilike('name', `%${search}%`)
+    const catIds = catMatches?.map(c => c.id).join(',') || ''
+
+    const { data: divMatches } = await supabase.from('divisions').select('id').ilike('name', `%${search}%`)
+    const divIds = divMatches?.map(d => d.id).join(',') || ''
+
+    const orParts = [
+      `recipient_name.ilike.%${search}%`,
+      `description.ilike.%${search}%`
+    ]
+    
+    if (isNum && numVal > 0) orParts.push(`amount.eq.${numVal}`)
+    if (catIds) orParts.push(`category_id.in.(${catIds})`)
+    if (divIds) orParts.push(`division_id.in.(${divIds})`)
+
+    query = query.or(orParts.join(','))
   }
 
   query = query

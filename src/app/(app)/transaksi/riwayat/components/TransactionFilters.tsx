@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface FilterProps {
   cashSources: { cash_source_id: string; name: string }[]
@@ -28,6 +28,13 @@ export function TransactionFilters({ cashSources, categories, periods }: FilterP
     if (search) params.set('search', search)
     router.push(`/transaksi/riwayat?${params.toString()}`)
   }
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      applyFilters()
+    }, 500)
+    return () => clearTimeout(handler)
+  }, [search, periodId, sourceId, categoryId, status])
 
   function resetFilters() {
     setPeriodId('')
@@ -104,16 +111,10 @@ export function TransactionFilters({ cashSources, categories, periods }: FilterP
         </div>
         <div className="flex gap-2">
           <button
-            onClick={applyFilters}
-            className="px-4 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
-          >
-            Filter
-          </button>
-          <button
             onClick={resetFilters}
-            className="px-4 py-1.5 text-sm text-slate-600 border border-slate-300 rounded hover:bg-slate-50 transition-colors"
+            className="w-full px-4 py-1.5 text-sm font-medium text-slate-600 border border-slate-300 rounded hover:bg-slate-50 transition-colors"
           >
-            Reset
+            Reset Filter
           </button>
         </div>
       </div>

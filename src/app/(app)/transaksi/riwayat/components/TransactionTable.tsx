@@ -8,6 +8,22 @@ import { TransactionWithDetails } from '@/lib/services/transaction.service'
 interface TransactionTableProps {
   transactions: TransactionWithDetails[]
   isAdmin: boolean
+  searchWord?: string
+}
+
+function HighlightText({ text, search }: { text: string | null | undefined, search?: string }) {
+  if (!text) return null
+  if (!search) return <>{text}</>
+  const parts = text.split(new RegExp(`(${search})`, 'gi'))
+  return (
+    <>
+      {parts.map((part, i) => 
+        part.toLowerCase() === search.toLowerCase() ? 
+          <mark key={i} className="bg-yellow-200 text-slate-900 rounded-sm px-0.5">{part}</mark> : 
+          part
+      )}
+    </>
+  )
 }
 
 function formatRupiah(amount: number | null): string {
@@ -29,7 +45,7 @@ function formatDate(dateStr: string | null): string {
   return dateStr
 }
 
-export function TransactionTable({ transactions, isAdmin }: TransactionTableProps) {
+export function TransactionTable({ transactions, isAdmin, searchWord }: TransactionTableProps) {
   const [selectedTx, setSelectedTx] = useState<TransactionWithDetails | null>(null)
 
   return (
@@ -73,18 +89,18 @@ export function TransactionTable({ transactions, isAdmin }: TransactionTableProp
                       </div>
                     </td>
                     <td className="px-5 py-3 align-top whitespace-normal">
-                      <div className="font-semibold text-slate-800">{tx.recipient_name || '—'}</div>
+                      <div className="font-semibold text-slate-800"><HighlightText text={tx.recipient_name || '—'} search={searchWord} /></div>
                       {tx.description && (
                         <div className="text-xs text-slate-500 mt-0.5 line-clamp-2" title={tx.description}>
-                          {tx.description}
+                          <HighlightText text={tx.description} search={searchWord} />
                         </div>
                       )}
                     </td>
                     <td className="px-5 py-3 align-top">
-                      <div className="font-medium text-slate-700 truncate">{tx.category_name}</div>
+                      <div className="font-medium text-slate-700 truncate"><HighlightText text={tx.category_name} search={searchWord} /></div>
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className="inline-flex items-center rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
-                          {tx.division_name}
+                          <HighlightText text={tx.division_name} search={searchWord} />
                         </span>
                         {tx.vehicle_number && (
                           <span className="text-[10px] text-slate-500 font-mono bg-slate-50 px-1 border border-slate-200 rounded">
@@ -115,7 +131,7 @@ export function TransactionTable({ transactions, isAdmin }: TransactionTableProp
                     </td>
                     <td className="px-5 py-3 align-top text-right">
                       <div className="font-semibold text-red-600 tabular-nums">
-                        {formatRupiah(tx.amount)}
+                        <HighlightText text={formatRupiah(tx.amount)} search={searchWord} />
                       </div>
                     </td>
                     <td className="px-5 py-3 align-top text-center space-y-2" onClick={(e) => e.stopPropagation()}>
@@ -149,23 +165,23 @@ export function TransactionTable({ transactions, isAdmin }: TransactionTableProp
                 <div className="flex justify-between items-start">
                   <div>
                     <div className="text-xs font-medium text-slate-500 mb-1">{formatDate(tx.date)}</div>
-                    <div className="font-semibold text-slate-800">{tx.recipient_name || 'Tanpa Penerima'}</div>
+                    <div className="font-semibold text-slate-800"><HighlightText text={tx.recipient_name || 'Tanpa Penerima'} search={searchWord} /></div>
                   </div>
                   <div className="font-bold text-red-600 tabular-nums">
-                    {formatRupiah(tx.amount)}
+                    <HighlightText text={formatRupiah(tx.amount)} search={searchWord} />
                   </div>
                 </div>
                 
                 <div className="text-sm text-slate-600 line-clamp-2">
-                  {tx.description || <span className="italic opacity-50">Tanpa deskripsi</span>}
+                  {tx.description ? <HighlightText text={tx.description} search={searchWord} /> : <span className="italic opacity-50">Tanpa deskripsi</span>}
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-[10px] font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
-                    {tx.category_name}
+                    <HighlightText text={tx.category_name} search={searchWord} />
                   </span>
                   <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-600">
-                    {tx.division_name}
+                    <HighlightText text={tx.division_name} search={searchWord} />
                   </span>
                   {tx.vehicle_number && (
                     <span className="inline-flex items-center font-mono text-[10px] text-slate-500 border border-slate-200 rounded px-1.5 py-0.5">

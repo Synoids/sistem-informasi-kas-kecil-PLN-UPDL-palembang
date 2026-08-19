@@ -74,7 +74,7 @@ export default async function RiwayatTransaksiPage({
         periods={allPeriods}
       />
 
-      <TransactionTable transactions={transactions} isAdmin={isAdmin} />
+      <TransactionTable transactions={transactions} isAdmin={isAdmin} searchWord={resolvedParams.search} />
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between px-4 py-3 border border-slate-200 bg-white rounded-lg mt-4">
