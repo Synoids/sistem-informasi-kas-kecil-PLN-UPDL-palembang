@@ -97,6 +97,24 @@ export function TransactionForm({
       return
     }
 
+    const cashSourceId = formData.get('cash_source_id') as string
+    const selectedSource = cashSources.find(c => c.cash_source_id === cashSourceId)
+    
+    if (selectedSource) {
+      const oldAmount = mode === 'edit' ? Number(defaultValues.amount || 0) : 0
+      const isSameSource = mode === 'edit' && defaultValues.cash_source_id === selectedSource.cash_source_id
+      
+      const effectiveBalance = isSameSource ? selectedSource.balance + oldAmount : selectedSource.balance
+      
+      if (amount > effectiveBalance) {
+        const shortage = amount - effectiveBalance
+        const formatRp = (num: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num)
+        
+        setError(`Saldo tidak mencukupi!\nSaldo Tersedia: ${formatRp(effectiveBalance)}\nNominal Transaksi: ${formatRp(amount)}\nKekurangan: ${formatRp(shortage)}\n\nSilakan gunakan sumber dana lain atau lakukan pendanaan (Top-up) terlebih dahulu.`)
+        return
+      }
+    }
+
     setLoading(true)
     setError(null)
     
@@ -343,7 +361,7 @@ export function TransactionForm({
       </div>
 
       {error && (
-        <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-md">
+        <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-md whitespace-pre-wrap">
           {error}
         </div>
       )}

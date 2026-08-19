@@ -57,6 +57,17 @@ export function AllocationForm({ cashSources }: AllocationFormProps) {
         return
       }
 
+      const source = cashSources.find(c => c.cash_source_id === data.source_id)
+      if (source && Number(data.amount) > source.balance) {
+        const amount = Number(data.amount)
+        const shortage = amount - source.balance
+        const formatRp = (num: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num)
+        
+        setError(`Saldo tidak mencukupi!\nSaldo Tersedia: ${formatRp(source.balance)}\nNominal Alokasi: ${formatRp(amount)}\nKekurangan: ${formatRp(shortage)}\n\nSilakan gunakan sumber dana lain atau lakukan pendanaan (Top-up) terlebih dahulu.`)
+        setIsPending(false)
+        return
+      }
+
       // Confirm action
       const sourceName = cashSources.find(c => c.cash_source_id === data.source_id)?.name || 'Sumber'
       const destName = cashSources.find(c => c.cash_source_id === data.destination_id)?.name || 'Tujuan'
@@ -96,7 +107,7 @@ export function AllocationForm({ cashSources }: AllocationFormProps) {
       />
 
       {error && (
-        <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-md">
+        <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-md whitespace-pre-wrap">
           {error}
         </div>
       )}
