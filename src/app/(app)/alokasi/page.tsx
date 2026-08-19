@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation'
 import { getCurrentProfile } from '@/lib/services/auth.service'
 import { getAccessibleCashSources } from '@/lib/services/cash-source.service'
 import { AllocationForm } from '@/app/components/AllocationForm'
-import { FundPeriodSection } from './components/FundPeriodSection'
 
 export const metadata = {
   title: 'Alokasi Dana',
@@ -34,8 +33,6 @@ export default async function AlokasiPage() {
         <h1 className="text-2xl font-bold text-slate-800">Alokasi Dana</h1>
         <p className="text-slate-500 mt-1">Kelola distribusi dana dari Kas Utama ke masing-masing pemegang dana.</p>
       </div>
-
-      <FundPeriodSection currentMainBalance={mainBalance} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Form Section */}
