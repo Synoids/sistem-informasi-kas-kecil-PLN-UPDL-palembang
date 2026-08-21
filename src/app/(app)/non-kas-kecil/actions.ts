@@ -139,10 +139,11 @@ export async function reimburseNonCashAction(claimId: string, currentPeriodId: s
       
       await supabase
         .from('transactions')
+        // @ts-ignore
         .update({ 
           receipt_status: hasReceipt ? 'SUDAH ADA' : 'BELUM ADA',
           receipt_file_path: hasReceipt ? claimRow.receipt_file_path : null
-        } as any)
+        })
         .eq('id', rpcData.transaction_id)
     }
 

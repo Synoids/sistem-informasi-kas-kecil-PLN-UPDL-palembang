@@ -53,10 +53,11 @@ export async function deleteTransactionAction(transactionId: string, reason: str
     
     const { error: updateErr } = await supabase
       .from('transactions')
+      // @ts-ignore
       .update({
         amount: 0,
         description: newDescription
-      } as any)
+      })
       .eq('id', transactionId)
 
     if (updateErr) throw updateErr
@@ -64,11 +65,12 @@ export async function deleteTransactionAction(transactionId: string, reason: str
     // 3. If it was a reimbursement, unlink it from non_cash_transactions
     await supabase
       .from('non_cash_transactions')
+      // @ts-ignore
       .update({
         status: 'BELUM DIGANTI',
         reimbursed_by_tx_id: null,
         reimbursed_at: null
-      } as any)
+      })
       .eq('reimbursed_by_tx_id', transactionId)
 
     revalidatePath('/transaksi')
