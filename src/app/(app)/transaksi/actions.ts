@@ -36,15 +36,15 @@ export async function deleteTransactionAction(transactionId: string, reason: str
 
   try {
     // 1. Fetch transaction and period
-    const { data: tx, error: fetchErr } = await supabase
+    const { data: rawTx, error: fetchErr } = await supabase
       .from('transactions')
       .select('amount, description, period_id, accounting_periods(status)')
       .eq('id', transactionId)
       .single()
 
-    if (fetchErr || !tx) throw new Error('Transaksi tidak ditemukan')
+    if (fetchErr || !rawTx) throw new Error('Transaksi tidak ditemukan')
 
-    // @ts-ignore
+    const tx = rawTx as any
     const periodStatus = tx.accounting_periods?.status
     if (periodStatus !== 'OPEN') throw new Error('Transaksi pada periode yang sudah ditutup tidak dapat dibatalkan')
 
@@ -56,7 +56,7 @@ export async function deleteTransactionAction(transactionId: string, reason: str
       .update({
         amount: 0,
         description: newDescription
-      })
+      } as any)
       .eq('id', transactionId)
 
     if (updateErr) throw updateErr
@@ -68,7 +68,7 @@ export async function deleteTransactionAction(transactionId: string, reason: str
         status: 'BELUM DIGANTI',
         reimbursed_by_tx_id: null,
         reimbursed_at: null
-      })
+      } as any)
       .eq('reimbursed_by_tx_id', transactionId)
 
     revalidatePath('/transaksi')

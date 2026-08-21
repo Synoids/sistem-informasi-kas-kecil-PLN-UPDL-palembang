@@ -207,7 +207,7 @@ export default async function DashboardPage() {
                           </td>
                           <td className="px-5 py-4">
                             <p className="font-medium text-slate-800">{tx.recipient_name}</p>
-                            <p className="text-xs text-slate-500 truncate max-w-[200px] mt-0.5" title={tx.description}>
+                            <p className="text-xs text-slate-500 truncate max-w-[200px] mt-0.5" title={tx.description || undefined}>
                               {tx.description}
                             </p>
                           </td>
