@@ -49,9 +49,18 @@ export async function fetchTransactions(
   if (categoryId) {
     query = query.eq('category_id', categoryId)
   }
-  if (receiptStatus) {
+  if (receiptStatus && receiptStatus !== 'DIBATALKAN') {
     query = query.eq('receipt_status', receiptStatus)
   }
+  
+  if (receiptStatus === 'DIBATALKAN') {
+    // Log Sampah mode
+    query = query.eq('amount', 0)
+  } else {
+    // Normal mode: hide voided transactions
+    query = query.neq('amount', 0)
+  }
+
   if (search) {
     const isNum = !isNaN(Number(search.replace(/\D/g, ''))) && search.replace(/\D/g, '').length > 0
     const numVal = Number(search.replace(/\D/g, ''))

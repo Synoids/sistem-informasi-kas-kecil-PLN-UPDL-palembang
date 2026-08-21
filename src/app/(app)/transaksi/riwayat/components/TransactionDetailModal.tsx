@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { TransactionWithDetails } from '@/lib/services/transaction.service'
+import { DeleteConfirmationDialog } from '../../components/DeleteConfirmationDialog'
 
 interface TransactionDetailModalProps {
   transaction: TransactionWithDetails | null
@@ -40,6 +41,7 @@ function formatDateTime(dateStr: string | null): string {
 
 export function TransactionDetailModal({ transaction, onClose }: TransactionDetailModalProps) {
   const modalRef = useRef<HTMLDivElement>(null)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
   // Handle Escape key
   useEffect(() => {
@@ -141,6 +143,14 @@ export function TransactionDetailModal({ transaction, onClose }: TransactionDeta
               Lihat Kuitansi
             </a>
           )}
+          {transaction.period_status === 'OPEN' && (
+            <button
+              onClick={() => setIsDeleteDialogOpen(true)}
+              className="px-4 py-2 bg-white border border-red-200 text-red-600 text-sm font-medium rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 transition-colors"
+            >
+              Batalkan
+            </button>
+          )}
           <button
             onClick={onClose}
             className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
@@ -149,6 +159,18 @@ export function TransactionDetailModal({ transaction, onClose }: TransactionDeta
           </button>
         </div>
       </div>
+      
+      {transaction && (
+        <DeleteConfirmationDialog 
+          isOpen={isDeleteDialogOpen}
+          onClose={() => setIsDeleteDialogOpen(false)}
+          transactionId={transaction.id}
+          onSuccess={() => {
+            setIsDeleteDialogOpen(false)
+            onClose()
+          }}
+        />
+      )}
     </div>
   )
 }

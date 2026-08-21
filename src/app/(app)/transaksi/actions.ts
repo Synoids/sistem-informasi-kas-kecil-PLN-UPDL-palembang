@@ -26,6 +26,62 @@ async function uploadReceiptFile(file: File, cashSourceId: string, transactionId
   return path
 }
 
+export async function deleteTransactionAction(transactionId: string, reason: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (!user) {
+    return { success: false, error: { message: 'Unauthorized' } }
+  }
+
+  try {
+    // 1. Fetch transaction and period
+    const { data: tx, error: fetchErr } = await supabase
+      .from('transactions')
+      .select('amount, description, period_id, accounting_periods(status)')
+      .eq('id', transactionId)
+      .single()
+
+    if (fetchErr || !tx) throw new Error('Transaksi tidak ditemukan')
+
+    // @ts-ignore
+    const periodStatus = tx.accounting_periods?.status
+    if (periodStatus !== 'OPEN') throw new Error('Transaksi pada periode yang sudah ditutup tidak dapat dibatalkan')
+
+    // 2. Perform Soft Delete (Void)
+    const newDescription = `[DIBATALKAN] Alasan: ${reason} (Eks: Rp ${tx.amount}) | ${tx.description}`
+    
+    const { error: updateErr } = await supabase
+      .from('transactions')
+      .update({
+        amount: 0,
+        description: newDescription
+      })
+      .eq('id', transactionId)
+
+    if (updateErr) throw updateErr
+
+    // 3. If it was a reimbursement, unlink it from non_cash_transactions
+    await supabase
+      .from('non_cash_transactions')
+      .update({
+        status: 'BELUM DIGANTI',
+        reimbursed_by_tx_id: null,
+        reimbursed_at: null
+      })
+      .eq('reimbursed_by_tx_id', transactionId)
+
+    revalidatePath('/transaksi')
+    revalidatePath('/dashboard')
+    revalidatePath('/')
+    
+    return { success: true }
+  } catch (err: any) {
+    console.error('deleteTransactionAction error:', err)
+    return { success: false, error: { message: err.message || 'Gagal membatalkan transaksi' } }
+  }
+}
+
 export async function submitTransaction(formData: FormData) {
   const activePeriod = await getActivePeriod()
   if (!activePeriod) {

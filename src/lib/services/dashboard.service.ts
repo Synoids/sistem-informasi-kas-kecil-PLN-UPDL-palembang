@@ -1,5 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
 
+export interface CashSourceStats {
+  cashSourceId: string
+  allocationReceived: number
+  expenseThisMonth: number
+  transactionCount: number
+  unreceiptedCount: number
+}
+
 export interface DashboardStats {
   periodFundingAmount: number
   totalExpenseThisMonth: number
@@ -7,6 +15,7 @@ export interface DashboardStats {
   unreceiptedTransactionCount: number
   unreimbursedNonCashCount: number
   unreimbursedNonCashAmount: number
+  perCashSource: Record<string, CashSourceStats>
 }
 
 export async function getDashboardStats(
@@ -21,7 +30,8 @@ export async function getDashboardStats(
     transactionCountThisMonth: 0,
     unreceiptedTransactionCount: 0,
     unreimbursedNonCashCount: 0,
-    unreimbursedNonCashAmount: 0
+    unreimbursedNonCashAmount: 0,
+    perCashSource: {}
   }
 
   if (!periodId) return defaultStats
@@ -41,7 +51,7 @@ export async function getDashboardStats(
   // 2. Transactions
   let txQuery = supabase
     .from('transactions')
-    .select('amount, receipt_status')
+    .select('amount, receipt_status, cash_source_id')
     .eq('period_id', periodId)
 
   if (cashSourceIds && cashSourceIds.length > 0) {
@@ -52,10 +62,54 @@ export async function getDashboardStats(
 
   let totalExpense = 0
   let unreceiptedCount = 0
+  const perCashSource: Record<string, CashSourceStats> = {}
 
   if (txData) {
-    totalExpense = (txData as any[]).reduce((sum, row) => sum + Number(row.amount), 0)
-    unreceiptedCount = (txData as any[]).filter(t => t.receipt_status === 'BELUM ADA').length
+    (txData as any[]).forEach(row => {
+      const amt = Number(row.amount)
+      totalExpense += amt
+      if (row.receipt_status === 'BELUM ADA') unreceiptedCount++
+
+      if (row.cash_source_id) {
+        if (!perCashSource[row.cash_source_id]) {
+          perCashSource[row.cash_source_id] = {
+            cashSourceId: row.cash_source_id,
+            allocationReceived: 0,
+            expenseThisMonth: 0,
+            transactionCount: 0,
+            unreceiptedCount: 0
+          }
+        }
+        perCashSource[row.cash_source_id].expenseThisMonth += amt
+        perCashSource[row.cash_source_id].transactionCount++
+        if (row.receipt_status === 'BELUM ADA') {
+          perCashSource[row.cash_source_id].unreceiptedCount++
+        }
+      }
+    })
+  }
+
+  // 2b. Per-Source Allocations (Funding received by each cash source)
+  const { data: allocData } = await supabase
+    .from('allocations')
+    .select('amount, destination_id')
+    .eq('period_id', periodId)
+
+  if (allocData) {
+    (allocData as any[]).forEach(row => {
+      if (row.destination_id) {
+        if (!perCashSource[row.destination_id]) {
+          perCashSource[row.destination_id] = {
+            cashSourceId: row.destination_id,
+            allocationReceived: 0,
+            expenseThisMonth: 0,
+            transactionCount: 0,
+            unreceiptedCount: 0
+          }
+        }
+        perCashSource[row.destination_id].allocationReceived += Number(row.amount)
+      }
+    })
   }
 
   // 3. Non Cash Claims (BELUM DIGANTI)
@@ -82,7 +136,8 @@ export async function getDashboardStats(
     transactionCountThisMonth: txData?.length || 0,
     unreceiptedTransactionCount: unreceiptedCount,
     unreimbursedNonCashCount: unreimbursedCount,
-    unreimbursedNonCashAmount: unreimbursedAmount
+    unreimbursedNonCashAmount: unreimbursedAmount,
+    perCashSource
   }
 }
 

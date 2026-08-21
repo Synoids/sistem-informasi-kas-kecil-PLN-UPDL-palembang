@@ -123,6 +123,27 @@ export async function reimburseNonCashAction(claimId: string, currentPeriodId: s
 
     if (error) throw error
 
+    // Option B: Automatically copy the receipt from the Non-Cash claim to the Transaction
+    if (data && data.transaction_id) {
+      // 1. Ambil data kuitansi dari klaim asli
+      const { data: claimData } = await supabase
+        .from('non_cash_transactions')
+        .select('receipt_file_path')
+        .eq('id', claimId)
+        .single()
+
+      // 2. Salin path kuitansi (jika ada) ke transaksi pencairan
+      const hasReceipt = !!(claimData && claimData.receipt_file_path)
+      
+      await supabase
+        .from('transactions')
+        .update({ 
+          receipt_status: hasReceipt ? 'SUDAH ADA' : 'BELUM ADA',
+          receipt_file_path: hasReceipt ? claimData.receipt_file_path : null
+        })
+        .eq('id', data.transaction_id)
+    }
+
     revalidatePath('/non-kas-kecil')
     revalidatePath('/transaksi')
     revalidatePath('/')
