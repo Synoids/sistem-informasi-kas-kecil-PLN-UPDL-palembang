@@ -3,6 +3,7 @@ import { getAccessibleCashSources } from '@/lib/services/cash-source.service'
 import { getCurrentProfile } from '@/lib/services/auth.service'
 import { RekapFilter } from './components/RekapFilter'
 import { RekapTable } from './components/RekapTable'
+import { PageGuide } from '@/app/components/PageGuide'
 
 function formatRupiah(amount: number): string {
   return new Intl.NumberFormat('id-ID', {
@@ -65,11 +66,23 @@ export default async function RekapPage(props: {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold text-slate-800">Rekapitulasi Laporan</h2>
-        <p className="text-sm text-slate-500 mt-0.5">
-          Lihat, pantau, dan salin (copy) data transaksi pengeluaran bulanan.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-heading font-semibold text-slate-800">Rekapitulasi Laporan</h2>
+            <PageGuide title="Panduan Ekspor Laporan">
+              <p>Halaman ini dirancang khusus untuk mempermudah pelaporan bulanan.</p>
+              <ul className="list-disc pl-5 mt-2 space-y-2 text-slate-600">
+                <li><strong>Cara Salin:</strong> Klik tombol <kbd className="bg-slate-100 border border-slate-300 px-1 py-0.5 rounded text-xs font-mono">Copy Table</kbd> di kanan atas tabel, lalu buka aplikasi Excel Anda dan tekan Paste (<kbd className="bg-slate-100 border border-slate-300 px-1 py-0.5 rounded text-xs font-mono">Ctrl+V</kbd>). Tabel akan tertata rapi secara otomatis.</li>
+                <li><strong>Ringkasan Saldo:</strong> Kotak di atas tabel akan memberikan kesimpulan saldo awal, total belanja, dan sisa saldo untuk bulan terpilih.</li>
+                <li><strong>Filter Bulanan:</strong> Pastikan Anda memilih bulan yang sudah tutup buku jika ingin menarik laporan final bulanan.</li>
+              </ul>
+            </PageGuide>
+          </div>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Lihat, pantau, dan salin (copy) data transaksi pengeluaran bulanan.
+          </p>
+        </div>
       </div>
 
       <RekapFilter 

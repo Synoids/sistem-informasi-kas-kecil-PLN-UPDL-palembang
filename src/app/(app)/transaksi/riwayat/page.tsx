@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { TransactionFilters } from './components/TransactionFilters'
 import { TransactionTable } from './components/TransactionTable'
+import { PageGuide } from '@/app/components/PageGuide'
 
 const PAGE_SIZE = 25
 
@@ -59,25 +60,63 @@ export default async function RiwayatTransaksiPage({
     return `/transaksi/riwayat?${params.toString()}`
   }
 
+  const isTrashView = resolvedParams.status === 'DIBATALKAN'
+
   return (
     <div className="space-y-4">
+      {isTrashView && (
+        <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-lg flex items-start gap-3">
+          <svg className="w-5 h-5 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div>
+            <p className="font-medium text-sm">Mode Log Sampah</p>
+            <p className="text-xs mt-0.5 opacity-90">Anda sedang melihat daftar transaksi yang telah dibatalkan/dihapus (nominal Rp 0).</p>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-heading font-semibold text-slate-800">Riwayat Transaksi</h2>
+          <div className="flex items-center gap-2">
+            <h2 className={`text-xl font-heading font-semibold ${isTrashView ? 'text-rose-700' : 'text-slate-800'}`}>
+              {isTrashView ? 'Log Sampah (Dibatalkan)' : 'Riwayat Transaksi'}
+            </h2>
+            <PageGuide title="Panduan Riwayat Transaksi">
+              <p>Halaman ini menampilkan seluruh rekam jejak pengeluaran kas kecil.</p>
+              <ul className="list-disc pl-5 mt-2 space-y-2 text-slate-600">
+                <li><strong>Filter:</strong> Anda bisa menyaring data berdasarkan Periode, Sumber Dana, Kategori, atau mencari kata kunci spesifik.</li>
+                <li><strong>Log Sampah (Admin):</strong> Transaksi yang dibatalkan akan masuk ke Log Sampah agar tidak memengaruhi saldo utama, namun jejak auditnya tetap tersimpan rapi.</li>
+                <li><strong>Detail & Hapus:</strong> Klik pada baris mana saja untuk melihat rincian lengkap atau mengunduh nota aslinya. Admin dapat membatalkan transaksi dari tampilan detail tersebut jika periode belum ditutup (OPEN).</li>
+              </ul>
+            </PageGuide>
+          </div>
           <p className="text-sm text-slate-500 mt-0.5">
             {count} transaksi ditemukan
           </p>
         </div>
         {isAdmin && (
-          <Link
-            href="/transaksi/riwayat?status=DIBATALKAN"
-            className="inline-flex items-center gap-2 px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg text-sm font-medium transition-colors border border-rose-200 shadow-sm"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-            Log Sampah
-          </Link>
+          isTrashView ? (
+            <Link
+              href="/transaksi/riwayat"
+              className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-50 text-slate-600 hover:bg-slate-100 rounded-lg text-sm font-medium transition-colors border border-slate-200 shadow-sm"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Kembali ke Riwayat
+            </Link>
+          ) : (
+            <Link
+              href="/transaksi/riwayat?status=DIBATALKAN"
+              className="inline-flex items-center gap-2 px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg text-sm font-medium transition-colors border border-rose-200 shadow-sm"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Log Sampah
+            </Link>
+          )
         )}
       </div>
 

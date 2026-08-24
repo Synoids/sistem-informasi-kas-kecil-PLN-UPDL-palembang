@@ -5,6 +5,7 @@ import { fetchTransactions } from '@/lib/services/transaction.service'
 import { getActivePeriod } from '@/lib/services/period.service'
 import { redirect } from 'next/navigation'
 import { DashboardStatsTabs } from './components/DashboardStatsTabs'
+import { PageGuide } from '@/app/components/PageGuide'
 import { FileText, AlertCircle, CheckCircle2, Wallet, CreditCard, User } from 'lucide-react'
 
 function formatRupiah(amount: number): string {
@@ -64,11 +65,24 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-heading font-bold text-slate-800">Dashboard</h2>
-        <p className="text-sm text-slate-500 mt-1">
-          Ringkasan operasional kas kecil.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <h2 className="text-2xl font-heading font-bold text-slate-800">Dashboard</h2>
+            <PageGuide title="Panduan Dashboard">
+              <p>Selamat datang di <strong>Dashboard</strong> Kas Kecil.</p>
+              <ul className="list-disc pl-5 mt-2 space-y-1 text-slate-600">
+                <li><strong>Periode Aktif:</strong> Menunjukkan rentang waktu keuangan yang sedang berjalan dan total Pagu.</li>
+                <li><strong>Sisa Saldo & Limit:</strong> Kartu statistik (warna-warni) menunjukkan berapa sisa uang saat ini. Bar Limit akan berwarna merah jika pengeluaran hampir menyentuh ambang batas.</li>
+                <li><strong>Riwayat Terbaru:</strong> Tabel di bawah menampilkan 5 transaksi terakhir yang di-input.</li>
+              </ul>
+              <p className="mt-3">Gunakan menu di samping untuk berpindah halaman.</p>
+            </PageGuide>
+          </div>
+          <p className="text-sm text-slate-500 mt-1">
+            Ringkasan operasional kas kecil.
+          </p>
+        </div>
       </div>
 
       {/* Period Indicator */}

@@ -9,10 +9,10 @@ export default async function UsersPage() {
 
   return (
     <div>
-      <UserList 
-        initialData={profiles} 
-        cashSources={cashSources} 
-        currentUserId={currentUser?.id || ''} 
+      <UserList
+        initialData={profiles}
+        cashSources={cashSources}
+        currentUserId={currentUser?.id || ''}
       />
     </div>
   )
