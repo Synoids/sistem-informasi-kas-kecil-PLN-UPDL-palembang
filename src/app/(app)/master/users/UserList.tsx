@@ -181,14 +181,14 @@ export function UserList({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {initialData.length === 0 ? (
+            {data.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
                   Tidak ada data profile yang ditemukan.
                 </td>
               </tr>
             ) : (
-              initialData.map(item => {
+              data.map(item => {
                 const isSelf = item.id === currentUserId
                 return (
                   <tr key={item.id} className={`hover:bg-slate-50 ${isSelf ? 'bg-amber-50/30' : ''}`}>
