@@ -10,8 +10,7 @@ import { Spinner } from '@/app/components/Spinner'
 
 type Division = Database['public']['Tables']['divisions']['Row']
 
-export function DivisionList({ initialData }: { initialData: Division[] }) {
-  const [data, setData] = useState<Division[]>(initialData)
+export function DivisionList({ initialData: data }: { initialData: Division[] }) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isPending, setIsPending] = useState(false)
   const [editingItem, setEditingItem] = useState<Division | null>(null)

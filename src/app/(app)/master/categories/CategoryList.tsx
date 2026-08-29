@@ -10,8 +10,7 @@ import { Spinner } from '@/app/components/Spinner'
 
 type Category = Database['public']['Tables']['categories']['Row']
 
-export function CategoryList({ initialData }: { initialData: Category[] }) {
-  const [data, setData] = useState<Category[]>(initialData)
+export function CategoryList({ initialData: data }: { initialData: Category[] }) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isPending, setIsPending] = useState(false)
   const [editingItem, setEditingItem] = useState<Category | null>(null)

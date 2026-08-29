@@ -13,13 +13,12 @@ import { Spinner } from '@/app/components/Spinner'
 type FundHolder = Database['public']['Tables']['fund_holders']['Row']
 
 export function CashSourceList({ 
-  initialData,
+  initialData: data,
   fundHolders 
 }: { 
   initialData: CashSourceAdminView[]
   fundHolders: FundHolder[] 
 }) {
-  const [data, setData] = useState<CashSourceAdminView[]>(initialData)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isPending, setIsPending] = useState(false)
   const [editingItem, setEditingItem] = useState<CashSourceAdminView | null>(null)

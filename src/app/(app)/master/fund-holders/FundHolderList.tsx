@@ -10,8 +10,7 @@ import { useRouter } from 'next/navigation'
 
 type FundHolder = Database['public']['Tables']['fund_holders']['Row']
 
-export function FundHolderList({ initialData }: { initialData: FundHolder[] }) {
-  const [data, setData] = useState<FundHolder[]>(initialData)
+export function FundHolderList({ initialData: data }: { initialData: FundHolder[] }) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isPending, setIsPending] = useState(false)
   const [editingItem, setEditingItem] = useState<FundHolder | null>(null)

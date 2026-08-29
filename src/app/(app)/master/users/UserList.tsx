@@ -9,7 +9,7 @@ import { SuccessModal } from '@/app/components/SuccessModal'
 import { Spinner } from '@/app/components/Spinner'
 
 export function UserList({ 
-  initialData,
+  initialData: data,
   cashSources,
   currentUserId
 }: { 
@@ -17,7 +17,6 @@ export function UserList({
   cashSources: CashSourceAdminView[]
   currentUserId: string
 }) {
-  const [data, setData] = useState<ProfileAdminView[]>(initialData)
   const router = useRouter()
   
   // Modals state
