@@ -22,9 +22,11 @@ export default async function MasterLayout({ children }: { children: ReactNode }
               <p>Halaman ini adalah pusat kontrol utama untuk mengatur fondasi aplikasi Kas Kecil.</p>
               <ul className="list-disc pl-5 mt-2 space-y-2 text-slate-600">
                 <li><strong>Periode:</strong> Tentukan rentang waktu operasional keuangan (bulan) dan tetapkan limit anggaran (Pagu). Pastikan hanya ada 1 periode yang berstatus OPEN.</li>
-                <li><strong>Sumber Dana:</strong> Kelola dompet/sumber uang (misal: Brankas Utama, Rekening Bank). Anda juga dapat menentukan PIC atau pemegang dana untuk setiap sumber dana.</li>
-                <li><strong>Kategori & Divisi:</strong> Tambahkan atau sesuaikan daftar label agar pencatatan transaksi lebih terorganisir dan pelaporan lebih rapi.</li>
-                <li><strong>Pengguna (Users):</strong> Kelola hak akses aplikasi. Hanya pengguna dengan peran ADMIN yang dapat mengakses halaman Master Data ini.</li>
+                <li><strong>Pemegang Dana:</strong> Daftarkan pegawai yang bertanggung jawab memegang atau mengelola uang kas kecil.</li>
+                <li><strong>Kategori:</strong> Kelola label pengeluaran (misal: Konsumsi, ATK) agar pelaporan rapi dan terpusat.</li>
+                <li><strong>Bidang / Divisi:</strong> Kelola daftar unit kerja yang menggunakan dana operasional.</li>
+                <li><strong>Sumber Dana:</strong> Kelola dompet/sumber uang (Brankas Utama, Rekening) dan tautkan dengan Pemegang Dana.</li>
+                <li><strong>Users & Akses:</strong> Buat akun login baru dan kelola hak akses aplikasi (Admin/User).</li>
               </ul>
             </PageGuide>
           </div>
