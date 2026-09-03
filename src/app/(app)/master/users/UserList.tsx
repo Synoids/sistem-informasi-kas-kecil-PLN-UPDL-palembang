@@ -335,6 +335,11 @@ export function UserList({
             </div>
             {error && <div className="mx-6 mt-4 p-3 bg-red-50 text-red-600 rounded-md text-sm border border-red-100">{error}</div>}
             <form action={handleResetPasswordSubmit} className="p-6 space-y-4">
+              <div className="bg-rose-50 p-3 rounded-md border border-rose-100 mb-2">
+                <p className="text-xs text-rose-600 font-semibold uppercase mb-1">Target Pengguna:</p>
+                <p className="font-medium text-slate-800">{resetPasswordTarget.full_name}</p>
+                <p className="text-xs text-slate-500 font-mono mt-0.5">Role: {resetPasswordTarget.role} | ID: {resetPasswordTarget.id}</p>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700">Password Baru *</label>
                 <input type="password" name="password" required minLength={6} className="w-full px-3 py-2 border border-slate-300 rounded-md mt-1 text-sm" />

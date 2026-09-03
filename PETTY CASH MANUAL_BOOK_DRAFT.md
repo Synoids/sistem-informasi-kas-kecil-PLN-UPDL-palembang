@@ -224,9 +224,14 @@ Halaman pusat pengaturan (hanya bisa diakses oleh Admin). Terdapat 6 sub-menu di
 * **Kategori:** Mengelola daftar label jenis pengeluaran (misal: "Konsumsi", "ATK") agar laporan seragam.
 * **Bidang / Divisi:** Mengelola daftar nama divisi atau unit kerja yang melakukan pengeluaran.
 * **Sumber Dana:** Tempat mendaftarkan nama bank/brankas (dompet) dan menautkannya dengan Pemegang Dana.
-* **Users & Akses:** Tempat menambahkan akun login pegawai baru, mematikan akun (*non-aktif*), atau mengatur peran (Admin/User).
+* **Users & Akses:** Tempat menambahkan akun login pegawai baru, mengatur hak akses sumber dana, dan mereset kata sandi.
 
-`[SCREENSHOT: Halaman Master Data menampilkan 6 tab menu]`
+### Cara Membuat Akun & Mereset Password Pegawai
+1. Buka tab **Users & Akses** di dalam Master Data.
+2. Untuk **Membuat Akun**: Klik "+ Tambah Profile", isi nama, email, role, dan tetapkan **Kata Sandi Awal**. Setelah selesai, *jangan lupa klik "Kelola Akses"* untuk memberikan hak pengelolaan kas kepada pengguna tersebut.
+3. Untuk **Reset Password (Lupa Sandi)**: Jika ada pegawai yang lupa sandinya, Admin cukup menekan tombol **Reset Password** berwarna merah di sebelah kanan nama pengguna, lalu masukkan sandi baru. Tidak perlu repot melalui email pemulihan!
+
+`[SCREENSHOT: Halaman Master Data menampilkan 6 tab menu dan tombol Reset Password]`
 
 ---
 
@@ -275,6 +280,9 @@ J: Tidak masalah! Anda bisa menambahkan kuitansinya belakangan melalui menu *Riw
 
 **T: Apa yang terjadi jika saya salah input pengeluaran?**
 J: Harap laporkan kepada Admin Anda. Admin memiliki wewenang untuk menekan tombol "Batalkan Transaksi". Dana akan otomatis kembali ke saldo Anda, dan transaksi yang salah tersebut akan masuk ke Log Sampah (tidak dihapus hilang).
+
+**T: Saya lupa password/kata sandi akun saya, apa yang harus saya lakukan?**
+J: Tidak perlu panik. Anda cukup melapor kepada **Admin Utama**. Admin dapat langsung membuatkan kata sandi baru untuk Anda dalam hitungan detik melalui menu *Master Data -> Users & Akses*, tanpa perlu menunggu email pemulihan (OTP).
 
 ---
 
