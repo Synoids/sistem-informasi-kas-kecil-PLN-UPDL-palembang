@@ -41,7 +41,19 @@ Aplikasi ini membagi wewenang ke dalam dua jenis peran (*role*) pengguna untuk m
 
 ---
 
-## 3. Memulai Sistem
+## 3. Langkah Awal Penggunaan (Onboarding & Setting Awal)
+
+Bagi **Admin**, saat pertama kali menggunakan sistem atau pada setiap awal bulan, ikuti urutan wajib berikut:
+
+1. **Buat Periode Baru:** Masuk ke menu `Master Data -> Periode`, lalu buat periode untuk bulan berjalan.
+2. **Suntikkan Modal Awal (Pagu):** Setelah periode berstatus OPEN, pada kartu Periode tersebut akan muncul form **Pendanaan (Funding)**. Masukkan *Nominal Pagu* (modal awal bulan dari pusat) dan klik *Beri Pendanaan*. Sistem otomatis akan memindahkan dana ini ke Kas Utama. *(Catatan: Proses ini hanya bisa dilakukan 1x per periode).*
+3. **Buat Sumber Dana Turunan (Opsional):** Buat sumber dana tambahan jika uang fisik dipecah ke beberapa brankas/rekening.
+4. **Alokasikan Dana:** Pindahkan uang dari Kas Utama ke sumber dana turunan melalui menu `Alokasi Dana`.
+5. **Atur Pengguna & Hak Akses:** Buat akun untuk pemegang dana. **⚠️ SANGAT PENTING:** Setelah profil dibuat, Admin *wajib* mengklik tombol **Kelola Akses** dan mencentang sumber dana yang boleh dikelola oleh pengguna tersebut. Tanpa akses ini, saldo pengguna akan selalu kosong!
+
+---
+
+## 4. Memulai Sistem
 
 ### Login ke Aplikasi
 1. Buka tautan aplikasi melalui *browser* Anda.
@@ -51,7 +63,7 @@ Aplikasi ini membagi wewenang ke dalam dua jenis peran (*role*) pengguna untuk m
 `[SCREENSHOT: Halaman Login]`
 
 ### Mengenal Tampilan Awal & Navigasi
-Setelah berhasil masuk, Anda akan melihat bilah menu (Navigasi) di sebelah kiri layar. Menu ini berfungsi sebagai jalan pintas untuk berpindah dari satu halaman ke halaman lainnya (seperti Dashboard, Input Transaksi, Rekapitulasi).
+Setelah berhasil masuk, Anda akan melihat bilah menu (Navigasi) di sebelah kiri layar. Jika Anda membutuhkan panduan spesifik per halaman, Anda dapat selalu menekan laci panduan `(?)` di sebelah judul halaman.
 
 `[SCREENSHOT: Tampilan Navigasi Kiri]`
 
@@ -91,12 +103,16 @@ Bagian ini adalah kegiatan yang paling sering Anda lakukan: mencatat pengeluaran
 
 `[SCREENSHOT: Form Input Transaksi]`
 
-### Cara Upload Kuitansi Belakangan & Edit Transaksi
-Jika Anda terburu-buru dan belum memfoto kuitansi, Anda bisa menambahkannya nanti:
+### Cara Mengubah Data Transaksi & Upload Kuitansi Susulan
+Jika Anda salah memasukkan nominal, salah mengetik deskripsi, atau baru ingin mengunggah foto kuitansi belakangan:
+
 1. Buka menu **Riwayat Transaksi**.
 2. Cari transaksi Anda, lalu klik tombol **Edit** (ikon pensil).
-3. Di bagian bawah formulir, unggah foto kuitansi Anda.
-4. Klik **Simpan Perubahan**.
+3. Anda **DAPAT** mengubah Nominal, Deskripsi, dan rincian transaksi lainnya **asalkan** Periode bulanan tersebut masih berstatus **OPEN**. (Perubahan Anda akan memotong/mengembalikan saldo secara otomatis).
+4. Di bagian bawah formulir, unggah foto kuitansi Anda.
+5. Klik **Simpan Perubahan**.
+
+> **⚠️ Aturan Keamanan:** Jika Periode sudah ditutup (**CLOSED**), Anda tidak dapat mengubah data nominal dan deskripsi lagi demi menjaga integritas data keuangan. Anda hanya diizinkan untuk mengunggah kuitansi susulan.
 
 `[SCREENSHOT: Tombol Edit pada Riwayat Transaksi]`
 

@@ -1,0 +1,8 @@
+<svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- The Vault / Container ('C' shape) -->
+  <path d="M 90 25 L 45 25 A 35 35 0 0 0 45 95 L 90 95" stroke="#0f172a" stroke-width="16" stroke-linecap="round" />
+  <!-- The Fund / Coin -->
+  <circle cx="45" cy="60" r="14" fill="#FBBF24" />
+  <!-- The Ledger Flow / Input -->
+  <path d="M 105 60 L 70 60" stroke="#0EA5E9" stroke-width="16" stroke-linecap="round" />
+</svg>

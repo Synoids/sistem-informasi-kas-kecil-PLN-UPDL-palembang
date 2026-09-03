@@ -68,7 +68,7 @@ export function TransactionForm({
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState('')
   
-  const isFinancialLocked = mode === 'edit' && (userRole !== 'ADMIN' || periodStatus === 'CLOSED')
+  const isFinancialLocked = mode === 'edit' && periodStatus === 'CLOSED'
   const [amountStr, setAmountStr] = useState<string>(
     defaultValues.amount ? Number(defaultValues.amount).toLocaleString('id-ID') : ''
   )
