@@ -89,7 +89,7 @@ BEGIN
         description = p_description,
         receipt_date = p_receipt_date,
         handover_date = p_handover_date,
-        receipt_status = p_receipt_status,
+        receipt_status = p_receipt_status::receipt_status_type,
         receipt_file_path = p_receipt_file_path
     WHERE id = p_transaction_id;
 
